@@ -1,0 +1,4 @@
+# Evita acceso directo a includes por Apache (XAMPP)
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>

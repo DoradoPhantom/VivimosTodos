@@ -50,6 +50,16 @@ function can_manage_inventory(): bool
     return in_array($u['rol'], ['administrador', 'supervisor'], true);
 }
 
+/** Administrador y supervisor: ver todas las reservas y autorizar o rechazar. */
+function can_manage_reservations(): bool
+{
+    $u = current_user();
+    if ($u === null) {
+        return false;
+    }
+    return in_array($u['rol'], ['administrador', 'supervisor'], true);
+}
+
 function login_user(string $usuario, string $password): bool
 {
     $stmt = db()->prepare(

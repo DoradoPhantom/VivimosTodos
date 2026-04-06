@@ -70,15 +70,15 @@ require dirname(__DIR__) . '/includes/header.php';
         <tbody>
         <?php foreach ($insumos as $row): ?>
             <?php
-            $low = (float) $row['cantidad_stock'] <= (float) $row['stock_minimo'];
+            $low = (int) $row['cantidad_stock'] <= (int) $row['stock_minimo'];
             ?>
             <tr class="<?= $low ? 'row-warning' : '' ?>">
                 <td><?= htmlspecialchars($row['codigo'] ?? '—', ENT_QUOTES, 'UTF-8') ?></td>
                 <td><?= htmlspecialchars($row['nombre'], ENT_QUOTES, 'UTF-8') ?></td>
                 <td><?= htmlspecialchars($row['categoria'] ?? '—', ENT_QUOTES, 'UTF-8') ?></td>
                 <td><?= htmlspecialchars($row['unidad_medida'], ENT_QUOTES, 'UTF-8') ?></td>
-                <td><?= htmlspecialchars((string) $row['cantidad_stock'], ENT_QUOTES, 'UTF-8') ?><?= $low ? ' ⚠' : '' ?></td>
-                <td><?= htmlspecialchars((string) $row['stock_minimo'], ENT_QUOTES, 'UTF-8') ?></td>
+                <td><?= htmlspecialchars((string) (int) $row['cantidad_stock'], ENT_QUOTES, 'UTF-8') ?><?= $low ? ' ⚠' : '' ?></td>
+                <td><?= htmlspecialchars((string) (int) $row['stock_minimo'], ENT_QUOTES, 'UTF-8') ?></td>
                 <td><?= htmlspecialchars($row['ubicacion'] ?? '—', ENT_QUOTES, 'UTF-8') ?></td>
                 <?php if ($canEdit): ?>
                     <td class="actions">

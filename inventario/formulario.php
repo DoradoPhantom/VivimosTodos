@@ -36,14 +36,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $descripcion = trim((string) ($_POST['descripcion'] ?? '')) ?: null;
         $categoria = trim((string) ($_POST['categoria'] ?? '')) ?: null;
         $unidad = trim((string) ($_POST['unidad_medida'] ?? 'unidad')) ?: 'unidad';
-        $stock = (string) ($_POST['cantidad_stock'] ?? '0');
-        $minimo = (string) ($_POST['stock_minimo'] ?? '0');
+        $stock = (int) ($_POST['cantidad_stock'] ?? 0);
+        $minimo = (int) ($_POST['stock_minimo'] ?? 0);
         $precio = trim((string) ($_POST['precio_unitario'] ?? ''));
         $ubicacion = trim((string) ($_POST['ubicacion'] ?? '')) ?: null;
         $postId = (int) ($_POST['id'] ?? 0);
 
         if ($nombre === '') {
             $error = 'El nombre es obligatorio.';
+        } elseif ($stock < 0 || $minimo < 0) {
+            $error = 'El stock debe ser un número positivo.';
         } else {
             $precioVal = $precio === '' ? null : $precio;
             try {
@@ -107,8 +109,8 @@ require dirname(__DIR__) . '/includes/header.php';
     <label class="full">Descripción <textarea name="descripcion" rows="3"><?= htmlspecialchars($row['descripcion'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea></label>
     <label>Categoría <input type="text" name="categoria" value="<?= htmlspecialchars($row['categoria'] ?? '', ENT_QUOTES, 'UTF-8') ?>"></label>
     <label>Unidad de medida <input type="text" name="unidad_medida" value="<?= htmlspecialchars($row['unidad_medida'] ?? 'unidad', ENT_QUOTES, 'UTF-8') ?>"></label>
-    <label>Cantidad en stock <input type="number" step="0.001" name="cantidad_stock" value="<?= htmlspecialchars((string) ($row['cantidad_stock'] ?? '0'), ENT_QUOTES, 'UTF-8') ?>"></label>
-    <label>Stock mínimo (alerta) <input type="number" step="0.001" name="stock_minimo" value="<?= htmlspecialchars((string) ($row['stock_minimo'] ?? '0'), ENT_QUOTES, 'UTF-8') ?>"></label>
+    <label>Cantidad en stock <input type="number" step="1" min="0" name="cantidad_stock" value="<?= htmlspecialchars((string) ((int) ($row['cantidad_stock'] ?? '0')), ENT_QUOTES, 'UTF-8') ?>"></label>
+    <label>Stock mínimo (alerta) <input type="number" step="1" min="0" name="stock_minimo" value="<?= htmlspecialchars((string) ((int) ($row['stock_minimo'] ?? '0')), ENT_QUOTES, 'UTF-8') ?>"></label>
     <label>Precio unitario (opcional) <input type="number" step="0.0001" name="precio_unitario" value="<?= htmlspecialchars((string) ($row['precio_unitario'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"></label>
     <label>Ubicación <input type="text" name="ubicacion" value="<?= htmlspecialchars($row['ubicacion'] ?? '', ENT_QUOTES, 'UTF-8') ?>"></label>
 

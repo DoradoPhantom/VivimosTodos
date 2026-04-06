@@ -37,7 +37,7 @@ $pageTitle = 'Iniciar sesión';
 </head>
 <body class="auth-body">
 <div class="auth-card">
-    <h1>VivemosTodos</h1>
+    <h1>VivimosTodos</h1>
     <p class="muted">Ingreso al sistema</p>
     <?php if ($error !== ''): ?>
         <div class="alert alert-error"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div>

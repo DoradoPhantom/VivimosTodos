@@ -10,5 +10,5 @@ const DB_USER = 'root';
 const DB_PASS = '';
 const DB_CHARSET = 'utf8mb4';
 
-/** Ruta base URL desde htdocs (sin barra final). Ej: /VivemosTodos */
-const BASE_PATH = '/VivemosTodos';
+/** Ruta base URL desde htdocs (sin barra final). Ej: /VivimosTodos */
+const BASE_PATH = '/VivimosTodos';

@@ -1,4 +1,4 @@
--- VivemosTodos - Esquema MySQL (XAMPP)
+-- VivimosTodos - Esquema MySQL (XAMPP)
 -- Ejecutar desde phpMyAdmin o: mysql -u root < schema.sql
 -- Acceso al sistema por NOMBRE DE USUARIO (no correo), típico en conjunto residencial.
 

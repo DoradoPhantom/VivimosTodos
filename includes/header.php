@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 if (!isset($pageTitle)) {
-    $pageTitle = 'VivemosTodos';
+    $pageTitle = 'VivimosTodos';
 }
 $user = current_user();
 ?>
@@ -16,7 +16,7 @@ $user = current_user();
 <body>
 <header class="site-header">
     <div class="wrap header-inner">
-        <a class="logo" href="<?= htmlspecialchars(url('index.php'), ENT_QUOTES, 'UTF-8') ?>">VivemosTodos</a>
+        <a class="logo" href="<?= htmlspecialchars(url('index.php'), ENT_QUOTES, 'UTF-8') ?>">VivimosTodos</a>
         <?php if ($user): ?>
             <nav class="nav-main">
                 <a href="<?= htmlspecialchars(url('index.php'), ENT_QUOTES, 'UTF-8') ?>">Inicio</a>

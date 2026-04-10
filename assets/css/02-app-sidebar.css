@@ -1,0 +1,256 @@
+/**
+ * 02-app-sidebar.css
+ * Barra lateral (marca, secciones Módulos / Administración, usuario, tema).
+ * Aplica al marcado generado por: includes/sidebar.php
+ * Tema claro por defecto; html.theme-dark restaura apariencia oscura.
+ */
+
+.app-sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    min-height: 100vh;
+    background: #f0f2f6;
+    border-right: 1px solid #dde1e8;
+    display: flex;
+    flex-direction: column;
+    color: #1a1d21;
+    font-size: 0.9375rem;
+}
+
+.app-sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.25rem 1.1rem 1.5rem;
+    border-bottom: 1px solid #dde1e8;
+}
+
+.app-sidebar-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(145deg, #1e3a5f, #0d6efd);
+    color: #fff;
+}
+
+.app-sidebar-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.app-sidebar-title {
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+
+.app-sidebar-sub {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #5c6570;
+}
+
+.app-sidebar-nav {
+    flex: 1;
+    padding: 1rem 0.65rem;
+    overflow-y: auto;
+}
+
+.app-sidebar-section-label {
+    margin: 0.75rem 0.5rem 0.4rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #6b7280;
+}
+
+.app-sidebar-list {
+    list-style: none;
+    margin: 0 0 0.5rem;
+    padding: 0;
+}
+
+.app-sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.65rem 0.75rem;
+    margin-bottom: 0.2rem;
+    border-radius: 10px;
+    color: #374151;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+}
+
+.app-sidebar-link:hover {
+    background: rgba(13, 110, 253, 0.1);
+    color: #0d6efd;
+}
+
+.app-sidebar-link.is-active {
+    background: #0d6efd;
+    color: #fff;
+}
+
+.app-sidebar-link.is-active:hover {
+    color: #fff;
+}
+
+.app-sidebar-link.is-active .app-sidebar-icon {
+    opacity: 1;
+}
+
+.app-sidebar-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    opacity: 0.85;
+}
+
+.app-sidebar-icon svg {
+    display: block;
+}
+
+.app-sidebar-footer {
+    margin-top: auto;
+    border-top: 1px solid #dde1e8;
+    padding: 0.75rem 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.app-sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0;
+}
+
+.app-sidebar-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    background: #0d6efd;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.app-sidebar-user-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.app-sidebar-user-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.app-sidebar-user-role {
+    font-size: 0.75rem;
+    color: #6b7280;
+    text-transform: capitalize;
+}
+
+.app-sidebar-theme {
+    width: 100%;
+    padding: 0.5rem 0.65rem;
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    border-radius: 8px;
+    border: 1px solid #cdd4df;
+    background: #fff;
+    color: #374151;
+    cursor: pointer;
+    text-align: center;
+}
+
+.app-sidebar-theme:hover {
+    border-color: #0d6efd;
+    color: #0d6efd;
+}
+
+.app-sidebar-theme[aria-pressed="true"] {
+    background: rgba(13, 110, 253, 0.12);
+    border-color: #0d6efd;
+    color: #0a58ca;
+}
+
+@media (max-width: 720px) {
+    .app-sidebar {
+        width: 220px;
+    }
+}
+
+/* Modo oscuro: misma barra que antes */
+html.theme-dark .app-sidebar {
+    background: #161616;
+    border-right-color: #2a2a2a;
+    color: #e8e8e8;
+}
+
+html.theme-dark .app-sidebar-brand {
+    border-bottom-color: #2a2a2a;
+}
+
+html.theme-dark .app-sidebar-sub {
+    color: #7a7f88;
+}
+
+html.theme-dark .app-sidebar-link {
+    color: #c8cdd3;
+}
+
+html.theme-dark .app-sidebar-link:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+}
+
+html.theme-dark .app-sidebar-link.is-active:hover {
+    color: #fff;
+}
+
+html.theme-dark .app-sidebar-footer {
+    border-top-color: #2a2a2a;
+}
+
+html.theme-dark .app-sidebar-user-role {
+    color: #8b919a;
+}
+
+html.theme-dark .app-sidebar-theme {
+    background: #252525;
+    border-color: #3d3d3d;
+    color: #e8e8e8;
+}
+
+html.theme-dark .app-sidebar-theme:hover {
+    border-color: #0d6efd;
+    color: #7eb6ff;
+}
+
+html.theme-dark .app-sidebar-theme[aria-pressed="true"] {
+    background: rgba(13, 110, 253, 0.25);
+    border-color: #0d6efd;
+    color: #fff;
+}

@@ -193,13 +193,6 @@ require __DIR__ . '/includes/header.php';
 ?>
 <h1>Bienvenido</h1>
 <p class="lead">Panel principal del sistema.</p>
-<ul class="card-list">
-    <li><a href="<?= htmlspecialchars(url('inventario/index.php'), ENT_QUOTES, 'UTF-8') ?>">Ver catálogo del salón (servicios y paquetes para eventos)</a></li>
-    <li><a href="<?= htmlspecialchars(url('reservas/index.php'), ENT_QUOTES, 'UTF-8') ?>">Reservas del salón (solicitar, consultar; administrador y supervisor aprueban o rechazan)</a></li>
-    <?php if ((current_user()['rol'] ?? '') === 'administrador'): ?>
-        <li><a href="<?= htmlspecialchars(url('admin/usuarios.php'), ENT_QUOTES, 'UTF-8') ?>">Administración de usuarios (solo administrador)</a></li>
-    <?php endif; ?>
-</ul>
 
 <?php if ($canSeeCalendar): ?>
     <section class="reserva-calendario-wrap">

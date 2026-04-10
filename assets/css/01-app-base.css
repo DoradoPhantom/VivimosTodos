@@ -1,4 +1,10 @@
-/* Vivimos Todos — estilos base */
+/**
+ * 01-app-base.css
+ * Estilos del contenido principal: formularios, tablas, alertas, calendario, login.
+ * Aplica a: index.php, reservas/*.php, inventario/*.php, admin/*.php (vía includes/header.php)
+ * y login.php (solo esta hoja).
+ */
+
 :root {
     --bg: #f4f6f8;
     --surface: #fff;
@@ -27,8 +33,30 @@ body {
     color: var(--text);
     background: var(--bg);
     min-height: 100vh;
+}
+
+body.app-body-root {
+    background: var(--bg);
+}
+
+.app-shell {
+    display: flex;
+    min-height: 100vh;
+    align-items: stretch;
+    width: 100%;
+}
+
+.app-body {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
+    min-height: 100vh;
+    background: var(--bg);
+}
+
+.app-body > .main-content {
+    flex: 1;
 }
 
 .wrap {
@@ -38,66 +66,8 @@ body {
     padding: 0 1.25rem;
 }
 
-.site-header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    box-shadow: var(--shadow);
-}
-
-.header-inner {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 1rem;
-    min-height: 3.5rem;
-}
-
-.logo {
-    font-weight: 700;
-    color: var(--text);
-    text-decoration: none;
-    font-size: 1.125rem;
-}
-
-.nav-main {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.75rem 1rem;
-}
-
-.nav-main a {
-    color: var(--primary);
-    text-decoration: none;
-}
-
-.nav-main a:hover {
-    text-decoration: underline;
-}
-
-.nav-user {
-    color: var(--muted);
-    font-size: 0.9rem;
-}
-
-.nav-user small {
-    display: block;
-    font-size: 0.75rem;
-}
-
 .main-content {
-    flex: 1;
     padding: 2rem 0;
-}
-
-.site-footer {
-    border-top: 1px solid var(--border);
-    background: var(--surface);
-    padding: 1rem 0;
-    font-size: 0.875rem;
-    color: var(--muted);
-    text-align: center;
 }
 
 h1 {
@@ -184,7 +154,7 @@ h2 {
 }
 
 .btn-outline:hover {
-    background: rgba(13, 110, 253, 0.08);
+    background: rgba(13, 110, 253, 0.12);
 }
 
 .btn-danger {
@@ -222,6 +192,8 @@ h2 {
     border: 1px solid var(--border);
     border-radius: 6px;
     font: inherit;
+    background: var(--surface);
+    color: var(--text);
 }
 
 .form-grid {
@@ -274,7 +246,7 @@ h2 {
 }
 
 .row-warning {
-    background: #fff8e6;
+    background: rgba(255, 193, 7, 0.12);
 }
 
 .actions {
@@ -297,6 +269,8 @@ h2 {
     font: inherit;
     border: 1px solid var(--border);
     border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
 }
 
 .sr-only {
@@ -329,23 +303,24 @@ h2 {
     border: 1px solid #f5c2c7;
 }
 
-/* Login */
+/* Login (login.php) */
 .auth-body {
     display: flex;
     align-items: center;
     justify-content: center;
     min-height: 100vh;
     background: linear-gradient(160deg, #e8eef5 0%, #f4f6f8 50%, #eef2f7 100%);
+    color: #1a1d21;
 }
 
 .auth-card {
     width: 100%;
     max-width: 400px;
     padding: 2rem;
-    background: var(--surface);
+    background: #fff;
     border-radius: var(--radius);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-    border: 1px solid var(--border);
+    border: 1px solid #dee2e6;
 }
 
 .auth-card h1 {
@@ -358,81 +333,9 @@ h2 {
     margin-bottom: 1.25rem;
 }
 
-/* Notificaciones en nav */
-.nav-notif-wrap {
-    position: relative;
-}
-
-.nav-notif {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.1rem;
-    height: 2.1rem;
-    padding: 0;
-    border: 1px solid var(--border);
-    border-radius: 999px;
+.auth-card input {
     background: #fff;
-    cursor: pointer;
-}
-
-.nav-notif:hover {
-    text-decoration: none !important;
-    border-color: var(--primary);
-    background: rgba(13, 110, 253, 0.06);
-}
-
-.nav-notif-icon {
-    font-size: 1rem;
-    line-height: 1;
-}
-
-.nav-notif-badge {
-    min-width: 1.2rem;
-    height: 1.2rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 0.3rem;
-    border-radius: 999px;
-    font-size: 0.72rem;
-    line-height: 1;
-    color: #fff;
-    background: var(--danger);
-}
-
-.notif-panel {
-    position: absolute;
-    top: calc(100% + 0.35rem);
-    right: 0;
-    z-index: 20;
-    width: min(320px, 85vw);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: #fff;
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
-    padding: 0.75rem;
-}
-
-.notif-title {
-    margin: 0;
-    font-size: 0.9rem;
-    font-weight: 600;
-}
-
-.notif-list {
-    margin: 0.55rem 0 0;
-    padding-left: 1rem;
-}
-
-.notif-list li {
-    margin-bottom: 0.35rem;
-    font-size: 0.86rem;
-}
-
-.notif-list small {
-    display: block;
-    color: var(--muted);
+    color: #1a1d21;
 }
 
 /* Calendario de reservas */
@@ -457,18 +360,18 @@ h2 {
     padding: 0.15rem 0.55rem;
     border-radius: 999px;
     border: 1px solid var(--border);
-    background: #fff;
+    background: var(--surface);
     font-size: 0.82rem;
 }
 
 .chip-aprobada {
-    background: #fbe3e6;
-    border-color: #eaa8b1;
+    background: rgba(220, 53, 69, 0.15);
+    border-color: #c45c6a;
 }
 
 .chip-pendiente {
-    background: #fff5db;
-    border-color: #e8d097;
+    background: rgba(255, 193, 7, 0.12);
+    border-color: #b89a4a;
 }
 
 .reserva-calendarios {
@@ -480,7 +383,7 @@ h2 {
 .reserva-mes {
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    background: #fff;
+    background: var(--surface);
     padding: 0.75rem;
 }
 
@@ -509,21 +412,22 @@ h2 {
     border-radius: 6px;
     border: 1px solid var(--border);
     font-size: 0.85rem;
-    background: #fff;
+    background: var(--surface);
+    color: var(--text);
 }
 
 .dia-libre {
-    background: #fff;
+    background: var(--surface);
 }
 
 .dia-aprobada {
-    background: #fbe3e6;
-    border-color: #eaa8b1;
+    background: rgba(220, 53, 69, 0.2);
+    border-color: #c45c6a;
 }
 
 .dia-pendiente {
-    background: #fff5db;
-    border-color: #e8d097;
+    background: rgba(255, 193, 7, 0.15);
+    border-color: #b89a4a;
 }
 
 .dia-vacio {
@@ -541,11 +445,77 @@ h2 {
 .insumo-item {
     border: 1px solid var(--border);
     border-radius: 8px;
-    background: #fff;
+    background: var(--surface);
     padding: 0.6rem;
 }
 
 .insumo-titulo {
     display: block;
     font-weight: 600;
+}
+
+.site-footer {
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    padding: 1rem 0;
+    font-size: 0.875rem;
+    color: var(--muted);
+    text-align: center;
+}
+
+/* Modo oscuro opcional (activado con clase en <html> + localStorage; botón en sidebar) */
+html.theme-dark body.app-body-root {
+    --bg: #141414;
+    --surface: #1e1e1e;
+    --text: #ececec;
+    --muted: #9aa0a6;
+    --border: #333;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    background: #0f0f0f;
+    color: var(--text);
+}
+
+html.theme-dark .app-body {
+    background: #141414;
+}
+
+html.theme-dark .form-stack input,
+html.theme-dark .form-stack select,
+html.theme-dark .form-grid input,
+html.theme-dark .form-grid select,
+html.theme-dark .form-grid textarea,
+html.theme-dark .actions .input-rechazo {
+    background: #252525;
+    color: var(--text);
+}
+
+html.theme-dark .data-table th {
+    background: #2a2a2a;
+    color: var(--text);
+}
+
+html.theme-dark .alert-success {
+    background: #0d2818;
+    color: #86efac;
+    border-color: #166534;
+}
+
+html.theme-dark .alert-error {
+    background: #3f1518;
+    color: #fca5a5;
+    border-color: #991b1b;
+}
+
+html.theme-dark .reserva-mes {
+    background: #252525;
+}
+
+html.theme-dark .dia,
+html.theme-dark .dia-libre {
+    background: #2a2a2a;
+    color: var(--text);
+}
+
+html.theme-dark .insumo-item {
+    background: #252525;
 }

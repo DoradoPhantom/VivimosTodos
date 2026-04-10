@@ -1,0 +1,145 @@
+/**
+ * 03-app-topbar.css
+ * Barra superior blanca: notificaciones, nombre/rol, Salir (sin enlaces del menú lateral).
+ * Aplica al bloque <header class="site-header"> en: includes/header.php
+ */
+
+.site-header {
+    background: #fff;
+    border-bottom: 1px solid #dee2e6;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    flex-shrink: 0;
+}
+
+.header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 1rem;
+    min-height: 3.5rem;
+    padding: 0 1.25rem;
+    max-width: none;
+}
+
+.nav-main {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.25rem;
+}
+
+.nav-main-end {
+    margin-left: auto;
+}
+
+.nav-user {
+    color: #2c3e50;
+    font-size: 0.9rem;
+    line-height: 1.25;
+    text-align: right;
+}
+
+.nav-user small {
+    display: block;
+    font-size: 0.75rem;
+    color: #6c757d;
+    font-weight: 400;
+}
+
+.nav-link-exit {
+    color: #0d6efd;
+    text-decoration: none;
+    font-size: 0.9375rem;
+    font-weight: 500;
+}
+
+.nav-link-exit:hover {
+    text-decoration: underline;
+}
+
+/* Notificaciones */
+.nav-notif-wrap {
+    position: relative;
+}
+
+.nav-notif {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    border: 1px solid #e9ecef;
+    border-radius: 999px;
+    background: #fff;
+    cursor: pointer;
+}
+
+.nav-notif:hover {
+    text-decoration: none !important;
+    border-color: #0d6efd;
+    background: rgba(13, 110, 253, 0.06);
+}
+
+.nav-notif-icon {
+    font-size: 1.05rem;
+    line-height: 1;
+}
+
+.nav-notif-badge {
+    position: absolute;
+    top: -0.15rem;
+    right: -0.15rem;
+    min-width: 1.2rem;
+    height: 1.2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.3rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    line-height: 1;
+    color: #fff;
+    background: #dc3545;
+}
+
+.notif-panel {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    right: 0;
+    z-index: 50;
+    width: min(320px, 85vw);
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+    padding: 0.75rem;
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: auto;
+}
+
+.notif-title {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1a1d21;
+}
+
+.notif-list {
+    margin: 0.55rem 0 0;
+    padding-left: 1rem;
+}
+
+.notif-list li {
+    margin-bottom: 0.35rem;
+    font-size: 0.86rem;
+    color: #1a1d21;
+}
+
+.notif-list small {
+    display: block;
+    color: #6c757d;
+}

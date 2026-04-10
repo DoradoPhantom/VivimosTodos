@@ -164,7 +164,7 @@ if ($canQuickReserve && $_SERVER['REQUEST_METHOD'] === 'POST') {
                     $lineas[] = '';
                     $lineas[] = 'Notas del solicitante:';
                     $lineas[] = $descVal;
-                }
+                } 
                 $descripcionCompleta = implode("\n", $lineas);
                 try {
                     $stmt = $pdo->prepare(

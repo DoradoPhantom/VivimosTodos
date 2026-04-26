@@ -235,7 +235,16 @@ require __DIR__ . '/includes/header.php';
                                 }
                             }
                         ?>
-                            <span class="<?= htmlspecialchars($css, ENT_QUOTES, 'UTF-8') ?>" title="<?= htmlspecialchars($tooltip, ENT_QUOTES, 'UTF-8') ?>"><?= $d ?></span>
+                            <?php if ($canQuickReserve): ?>
+                                <button
+                                    type="button"
+                                    class="<?= htmlspecialchars($css, ENT_QUOTES, 'UTF-8') ?> dia-click"
+                                    title="<?= htmlspecialchars($tooltip, ENT_QUOTES, 'UTF-8') ?>"
+                                    data-date="<?= htmlspecialchars($fechaKey, ENT_QUOTES, 'UTF-8') ?>"
+                                ><?= $d ?></button>
+                            <?php else: ?>
+                                <span class="<?= htmlspecialchars($css, ENT_QUOTES, 'UTF-8') ?>" title="<?= htmlspecialchars($tooltip, ENT_QUOTES, 'UTF-8') ?>"><?= $d ?></span>
+                            <?php endif; ?>
                         <?php endfor; ?>
                     </div>
                 </article>
@@ -286,48 +295,100 @@ require __DIR__ . '/includes/header.php';
         <?php if ($error !== ''): ?>
             <div class="alert alert-error"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div>
         <?php endif; ?>
-
-        <form method="post" class="form-grid section">
-            <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
-            <h2 class="full">Solicitar reserva</h2>
-            <label>Aforo estimado (personas)
-                <input type="number" name="asistentes" min="1" max="<?= VENUE_MAX_CAPACITY ?>" required value="<?= (int) $asistentesVal ?>">
-                <small class="muted">Capacidad máxima del salón: <?= VENUE_MAX_CAPACITY ?> personas.</small>
-            </label>
-            <label class="full">Fecha y hora del evento
-                <input type="datetime-local" name="fecha_evento" required value="<?= htmlspecialchars($fechaVal, ENT_QUOTES, 'UTF-8') ?>">
-            </label>
-            <div class="full">
-                <label>Insumos solicitados (opcional)</label>
-                <?php if (count($insumosDisponibles) > 0): ?>
-                    <div class="insumos-grid">
-                        <?php foreach ($insumosDisponibles as $ins): ?>
-                            <?php $iid = (int) $ins['id']; ?>
-                            <label class="insumo-item">
-                                <span class="insumo-titulo"><?= htmlspecialchars($ins['nombre'], ENT_QUOTES, 'UTF-8') ?></span>
-                                <small class="muted">Disp.: <?= (int) $ins['stock'] ?><?= $ins['categoria'] !== '' ? ' · ' . htmlspecialchars($ins['categoria'], ENT_QUOTES, 'UTF-8') : '' ?></small>
-                                <input
-                                    type="number"
-                                    name="insumo_cantidad[<?= $iid ?>]"
-                                    min="0"
-                                    max="<?= (int) $ins['stock'] ?>"
-                                    value="<?= isset($insumoCantidades[$iid]) ? (int) $insumoCantidades[$iid] : 0 ?>"
-                                >
-                            </label>
-                        <?php endforeach; ?>
-                    </div>
-                <?php else: ?>
-                    <p class="muted">No hay insumos cargados aún en el catálogo.</p>
-                <?php endif; ?>
-            </div>
-            <label class="full">Descripción (opcional)
-                <textarea name="descripcion" rows="3" placeholder="Tipo de evento, número de asistentes, etc."><?= htmlspecialchars($descVal, ENT_QUOTES, 'UTF-8') ?></textarea>
-            </label>
-            <div class="form-actions full">
-                <button type="submit" class="btn btn-primary">Enviar solicitud</button>
-                <a class="btn btn-outline" href="<?= htmlspecialchars(url('reservas/index.php'), ENT_QUOTES, 'UTF-8') ?>">Ver mis reservas</a>
-            </div>
-        </form>
     <?php endif; ?>
+<?php endif; ?>
+
+<?php if ($canQuickReserve): ?>
+    <div class="modal" id="reserva-modal" hidden>
+        <div class="modal-backdrop" data-modal-close></div>
+        <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="reserva-modal-title">
+            <div class="modal-header">
+                <h2 id="reserva-modal-title">Solicitar reserva</h2>
+                <button type="button" class="btn btn-sm btn-outline" data-modal-close>Cerrar</button>
+            </div>
+            <div class="modal-body">
+                <form method="post" class="form-grid">
+                    <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
+                    <label>Aforo estimado (personas)
+                        <input type="number" name="asistentes" min="1" max="<?= VENUE_MAX_CAPACITY ?>" required value="<?= (int) $asistentesVal ?>">
+                        <small class="muted">Capacidad máxima del salón: <?= VENUE_MAX_CAPACITY ?> personas.</small>
+                    </label>
+                    <label class="full">Fecha y hora del evento
+                        <input id="reserva-modal-fecha" type="datetime-local" name="fecha_evento" required value="<?= htmlspecialchars($fechaVal, ENT_QUOTES, 'UTF-8') ?>">
+                        <small class="muted">Selecciona el día en el calendario para autocompletar la fecha.</small>
+                    </label>
+                    <div class="full">
+                        <label>Insumos solicitados (opcional)</label>
+                        <?php if (count($insumosDisponibles) > 0): ?>
+                            <div class="insumos-grid">
+                                <?php foreach ($insumosDisponibles as $ins): ?>
+                                    <?php $iid = (int) $ins['id']; ?>
+                                    <label class="insumo-item">
+                                        <span class="insumo-titulo"><?= htmlspecialchars($ins['nombre'], ENT_QUOTES, 'UTF-8') ?></span>
+                                        <small class="muted">Disp.: <?= (int) $ins['stock'] ?><?= $ins['categoria'] !== '' ? ' · ' . htmlspecialchars($ins['categoria'], ENT_QUOTES, 'UTF-8') : '' ?></small>
+                                        <input
+                                            type="number"
+                                            name="insumo_cantidad[<?= $iid ?>]"
+                                            min="0"
+                                            max="<?= (int) $ins['stock'] ?>"
+                                            value="<?= isset($insumoCantidades[$iid]) ? (int) $insumoCantidades[$iid] : 0 ?>"
+                                        >
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php else: ?>
+                            <p class="muted">No hay insumos cargados aún en el catálogo.</p>
+                        <?php endif; ?>
+                    </div>
+                    <label class="full">Descripción (opcional)
+                        <textarea name="descripcion" rows="3" placeholder="Tipo de evento, número de asistentes, etc."><?= htmlspecialchars($descVal, ENT_QUOTES, 'UTF-8') ?></textarea>
+                    </label>
+                    <div class="form-actions full">
+                        <button type="submit" class="btn btn-primary">Enviar solicitud</button>
+                        <a class="btn btn-outline" href="<?= htmlspecialchars(url('reservas/index.php'), ENT_QUOTES, 'UTF-8') ?>">Ver mis reservas</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        var modal = document.getElementById('reserva-modal');
+        var fechaInput = document.getElementById('reserva-modal-fecha');
+        if (!modal || !fechaInput) return;
+
+        function openModal(dateStr) {
+            if (dateStr) fechaInput.value = dateStr + 'T18:00';
+            modal.hidden = false;
+            document.body.classList.add('modal-open');
+            fechaInput.focus();
+        }
+
+        function closeModal() {
+            modal.hidden = true;
+            document.body.classList.remove('modal-open');
+        }
+
+        modal.addEventListener('click', function (ev) {
+            var t = ev.target;
+            if (t && t.matches('[data-modal-close]')) closeModal();
+        });
+
+        document.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Escape' && !modal.hidden) closeModal();
+        });
+
+        document.addEventListener('click', function (ev) {
+            var btn = ev.target && ev.target.closest ? ev.target.closest('.dia-click[data-date]') : null;
+            if (!btn) return;
+            openModal(btn.getAttribute('data-date') || '');
+        });
+
+        <?php if ($error !== '' && $_SERVER['REQUEST_METHOD'] === 'POST'): ?>
+        openModal('<?= htmlspecialchars(substr((string) $fechaVal, 0, 10), ENT_QUOTES, 'UTF-8') ?>');
+        <?php endif; ?>
+    })();
+    </script>
 <?php endif; ?>
 <?php require __DIR__ . '/includes/footer.php'; ?>

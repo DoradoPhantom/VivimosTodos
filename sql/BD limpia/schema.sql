@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS insumos (
   stock_minimo DECIMAL(12, 3) NOT NULL DEFAULT 0 COMMENT 'No usado en UI de salón',
   precio_unitario DECIMAL(14, 4) NULL COMMENT 'Precio de referencia',
   ubicacion VARCHAR(120) NULL COMMENT 'No usado en UI de salón',
+  estado_operativo ENUM('disponible','danado','reparacion') NOT NULL DEFAULT 'disponible' COMMENT 'Disponible / Dañado / En reparación',
   activo TINYINT(1) NOT NULL DEFAULT 1,
   creado_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   actualizado_en DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,

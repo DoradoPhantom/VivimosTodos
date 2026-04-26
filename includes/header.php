@@ -6,6 +6,8 @@ if (!isset($pageTitle)) {
 $user = current_user();
 $pendingReservations = 0;
 $pendingPreview = [];
+// detalle para acciones rápidas desde la campana
+$pendingDetail = [];
 if ($user && can_manage_reservations()) {
     try {
         $pdo = db();
@@ -20,9 +22,20 @@ if ($user && can_manage_reservations()) {
              LIMIT 5"
         );
         $pendingPreview = $stmtPreview->fetchAll();
+
+        $stmtDetail = $pdo->query(
+            "SELECT r.id, r.fecha_evento, u.nombre_completo
+             FROM reservas r
+             INNER JOIN usuarios u ON u.id = r.usuario_id
+             WHERE r.estado = 'pendiente'
+             ORDER BY r.creado_en DESC
+             LIMIT 10"
+        );
+        $pendingDetail = $stmtDetail->fetchAll();
     } catch (Throwable $e) {
         $pendingReservations = 0;
         $pendingPreview = [];
+        $pendingDetail = [];
     }
 }
 ?>
@@ -72,15 +85,29 @@ if ($user && can_manage_reservations()) {
                                 No hay reservas pendientes.
                             <?php endif; ?>
                         </p>
-                        <?php if (count($pendingPreview) > 0): ?>
+                        <?php if (count($pendingDetail) > 0): ?>
                             <ul class="notif-list">
-                                <?php foreach ($pendingPreview as $p): ?>
+                                <?php foreach ($pendingDetail as $p): ?>
                                     <li>
-                                        <?= htmlspecialchars($p['nombre_completo'], ENT_QUOTES, 'UTF-8') ?>
-                                        <small><?= htmlspecialchars(date('d/m H:i', strtotime((string) $p['fecha_evento'])), ENT_QUOTES, 'UTF-8') ?></small>
+                                        <button
+                                            type="button"
+                                            class="notif-item"
+                                            data-reserva-id="<?= (int) ($p['id'] ?? 0) ?>"
+                                            data-reserva-nombre="<?= htmlspecialchars((string) ($p['nombre_completo'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                                            data-reserva-fecha="<?= htmlspecialchars((string) ($p['fecha_evento'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                                            onclick="openReservaReviewFromNotif(this)"
+                                        >
+                                            <?= htmlspecialchars((string) ($p['nombre_completo'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                            <small><?= htmlspecialchars(date('d/m H:i', strtotime((string) $p['fecha_evento'])), ENT_QUOTES, 'UTF-8') ?></small>
+                                        </button>
                                     </li>
                                 <?php endforeach; ?>
                             </ul>
+                        <?php endif; ?>
+                        <?php if (count($pendingPreview) > 0): ?>
+                            <p class="muted" style="margin:0.5rem 0 0;">
+                                También puedes revisar todo en <a href="<?= htmlspecialchars(url('reservas/index.php'), ENT_QUOTES, 'UTF-8') ?>">Reservas</a>.
+                            </p>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -93,5 +120,32 @@ if ($user && can_manage_reservations()) {
         </nav>
     </div>
 </header>
+
+<?php if (can_manage_reservations()): ?>
+<div class="modal" id="reserva-review-modal" hidden>
+    <div class="modal-backdrop" data-modal-close></div>
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="reserva-review-title">
+        <div class="modal-header">
+            <h2 id="reserva-review-title">Revisar solicitud</h2>
+            <button type="button" class="btn btn-sm btn-ghost" data-modal-close>Cancelar</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-text" id="reserva-review-sub"></p>
+            <form method="post" action="<?= htmlspecialchars(url('reservas/index.php'), ENT_QUOTES, 'UTF-8') ?>" onsubmit="return reviewValidateReject();" class="form-grid">
+                <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" name="id" id="review-id-reject" value="">
+                <input type="hidden" name="action" value="rechazar">
+                <label class="full">Motivo del rechazo (solo si rechazas)
+                    <input type="text" name="comentario_revision" id="review-reason" maxlength="500" placeholder="Escribe el motivo…">
+                </label>
+                <div class="modal-actions full">
+                    <button type="button" class="btn btn-outline" onclick="reviewApprove()">Autorizar</button>
+                    <button type="submit" class="btn btn-danger">Rechazar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 <?php endif; ?>
 <main class="wrap main-content">

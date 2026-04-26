@@ -38,6 +38,7 @@ CREATE TABLE `insumos` (
   `stock_minimo` decimal(12,3) NOT NULL DEFAULT 0.000 COMMENT 'No usado en UI de salón',
   `precio_unitario` decimal(14,4) DEFAULT NULL COMMENT 'Precio de referencia',
   `ubicacion` varchar(120) DEFAULT NULL COMMENT 'No usado en UI de salón',
+  `estado_operativo` enum('disponible','danado','reparacion') NOT NULL DEFAULT 'disponible' COMMENT 'Disponible / Dañado / En reparación',
   `activo` tinyint(1) NOT NULL DEFAULT 1,
   `creado_en` datetime NOT NULL DEFAULT current_timestamp(),
   `actualizado_en` datetime DEFAULT NULL ON UPDATE current_timestamp()

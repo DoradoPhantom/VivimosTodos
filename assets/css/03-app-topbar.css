@@ -121,6 +121,29 @@
     cursor: auto;
 }
 
+.notif-item {
+    width: 100%;
+    display: block;
+    text-align: left;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 0.55rem 0.65rem;
+    cursor: pointer;
+}
+
+.notif-item:hover {
+    border-color: rgba(13, 110, 253, 0.6);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
+}
+
+.notif-item small {
+    display: block;
+    color: var(--muted);
+    margin-top: 0.15rem;
+}
+
 .notif-title {
     margin: 0;
     font-size: 0.9rem;

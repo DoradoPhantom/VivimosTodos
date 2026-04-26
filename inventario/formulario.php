@@ -37,33 +37,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $categoria = trim((string) ($_POST['categoria'] ?? '')) ?: null;
         $precio = trim((string) ($_POST['precio_unitario'] ?? ''));
         $cantidad = max(0, (int) ($_POST['cantidad_stock'] ?? 0));
+        $estadoOperativo = (string) ($_POST['estado_operativo'] ?? 'disponible');
         $postId = (int) ($_POST['id'] ?? 0);
 
         if ($nombre === '') {
             $error = 'El nombre es obligatorio.';
         } else {
+            $allowedEstados = ['disponible', 'danado', 'reparacion'];
+            if (!in_array($estadoOperativo, $allowedEstados, true)) {
+                $estadoOperativo = 'disponible';
+            }
             $precioVal = $precio === '' ? null : $precio;
             try {
                 if ($postId > 0) {
-                    $stmt = $pdo->prepare(
-                        'UPDATE insumos SET codigo=?, nombre=?, descripcion=?, categoria=?, cantidad_stock=?, precio_unitario=? WHERE id=? AND activo=1'
-                    );
-                    $stmt->execute([
-                        $codigo, $nombre, $descripcion, $categoria, $cantidad, $precioVal, $postId,
-                    ]);
+                    try {
+                        $stmt = $pdo->prepare(
+                            'UPDATE insumos
+                             SET codigo=?, nombre=?, descripcion=?, categoria=?, cantidad_stock=?, precio_unitario=?, estado_operativo=?
+                             WHERE id=? AND activo=1'
+                        );
+                        $stmt->execute([
+                            $codigo, $nombre, $descripcion, $categoria, $cantidad, $precioVal, $estadoOperativo, $postId,
+                        ]);
+                    } catch (PDOException $e) {
+                        // si la columna aún no existe, actualiza sin estado
+                        $stmt = $pdo->prepare(
+                            'UPDATE insumos SET codigo=?, nombre=?, descripcion=?, categoria=?, cantidad_stock=?, precio_unitario=? WHERE id=? AND activo=1'
+                        );
+                        $stmt->execute([
+                            $codigo, $nombre, $descripcion, $categoria, $cantidad, $precioVal, $postId,
+                        ]);
+                    }
                     $message = 'Ítem actualizado.';
                     $id = $postId;
                     $stmt = $pdo->prepare('SELECT * FROM insumos WHERE id = ? LIMIT 1');
                     $stmt->execute([$id]);
                     $row = $stmt->fetch();
                 } else {
-                    $stmt = $pdo->prepare(
-                        'INSERT INTO insumos (codigo, nombre, descripcion, categoria, unidad_medida, cantidad_stock, stock_minimo, precio_unitario, ubicacion, activo)
-                         VALUES (?,?,?,?, \'servicio\', ?, 0, ?, NULL, 1)'
-                    );
-                    $stmt->execute([
-                        $codigo, $nombre, $descripcion, $categoria, $cantidad, $precioVal,
-                    ]);
+                    try {
+                        $stmt = $pdo->prepare(
+                            'INSERT INTO insumos (codigo, nombre, descripcion, categoria, unidad_medida, cantidad_stock, stock_minimo, precio_unitario, ubicacion, estado_operativo, activo)
+                             VALUES (?,?,?,?, \'servicio\', ?, 0, ?, NULL, ?, 1)'
+                        );
+                        $stmt->execute([
+                            $codigo, $nombre, $descripcion, $categoria, $cantidad, $precioVal, $estadoOperativo,
+                        ]);
+                    } catch (PDOException $e) {
+                        $stmt = $pdo->prepare(
+                            'INSERT INTO insumos (codigo, nombre, descripcion, categoria, unidad_medida, cantidad_stock, stock_minimo, precio_unitario, ubicacion, activo)
+                             VALUES (?,?,?,?, \'servicio\', ?, 0, ?, NULL, 1)'
+                        );
+                        $stmt->execute([
+                            $codigo, $nombre, $descripcion, $categoria, $cantidad, $precioVal,
+                        ]);
+                    }
                     header('Location: ' . url('inventario/index.php'));
                     exit;
                 }
@@ -103,6 +130,16 @@ require dirname(__DIR__) . '/includes/header.php';
     <label>Categoría <input type="text" name="categoria" placeholder="Ej. catering, sonido, decoración" value="<?= htmlspecialchars($row['categoria'] ?? '', ENT_QUOTES, 'UTF-8') ?>"></label>
     <label>Cantidad disponible <input type="number" name="cantidad_stock" min="0" step="1" value="<?= htmlspecialchars((string) (isset($row['cantidad_stock']) ? (int) round((float) $row['cantidad_stock']) : 0), ENT_QUOTES, 'UTF-8') ?>"></label>
     <label>Precio de referencia (opcional) <input type="number" step="0.01" min="0" name="precio_unitario" value="<?= htmlspecialchars((string) ($row['precio_unitario'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"></label>
+    <?php
+    $estadoVal = (string) ($row['estado_operativo'] ?? 'disponible');
+    ?>
+    <label>Estado del insumo
+        <select name="estado_operativo">
+            <option value="disponible" <?= $estadoVal === 'disponible' ? 'selected' : '' ?>>Disponible</option>
+            <option value="danado" <?= $estadoVal === 'danado' ? 'selected' : '' ?>>Dañado</option>
+            <option value="reparacion" <?= $estadoVal === 'reparacion' ? 'selected' : '' ?>>En reparación</option>
+        </select>
+    </label>
 
     <div class="form-actions full">
         <button type="submit" class="btn btn-primary">Guardar</button>

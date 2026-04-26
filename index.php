@@ -304,9 +304,10 @@ require __DIR__ . '/includes/header.php';
         <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="reserva-modal-title">
             <div class="modal-header">
                 <h2 id="reserva-modal-title">Solicitar reserva</h2>
-                <button type="button" class="btn btn-sm btn-outline" data-modal-close>Cerrar</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-modal-close>Cancelar</button>
             </div>
             <div class="modal-body">
+                <p class="modal-text">Completa los datos para enviar la solicitud.</p>
                 <form method="post" class="form-grid">
                     <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
                     <label>Aforo estimado (personas)
@@ -343,9 +344,9 @@ require __DIR__ . '/includes/header.php';
                     <label class="full">Descripción (opcional)
                         <textarea name="descripcion" rows="3" placeholder="Tipo de evento, número de asistentes, etc."><?= htmlspecialchars($descVal, ENT_QUOTES, 'UTF-8') ?></textarea>
                     </label>
-                    <div class="form-actions full">
-                        <button type="submit" class="btn btn-primary">Enviar solicitud</button>
+                    <div class="modal-actions full">
                         <a class="btn btn-outline" href="<?= htmlspecialchars(url('reservas/index.php'), ENT_QUOTES, 'UTF-8') ?>">Ver mis reservas</a>
+                        <button type="submit" class="btn btn-primary">Enviar solicitud</button>
                     </div>
                 </form>
             </div>
@@ -357,6 +358,11 @@ require __DIR__ . '/includes/header.php';
         var modal = document.getElementById('reserva-modal');
         var fechaInput = document.getElementById('reserva-modal-fecha');
         if (!modal || !fechaInput) return;
+
+        // "Portal": mover el modal al final del body para que nunca se comporte como bloque del layout
+        if (modal.parentElement !== document.body) {
+            document.body.appendChild(modal);
+        }
 
         function openModal(dateStr) {
             if (dateStr) fechaInput.value = dateStr + 'T18:00';

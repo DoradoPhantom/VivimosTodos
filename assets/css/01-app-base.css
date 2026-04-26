@@ -463,6 +463,91 @@ h2 {
     text-align: center;
 }
 
+/* Modal (ventana emergente overlay) */
+.modal[hidden] {
+    display: none !important;
+}
+
+.modal {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 2000 !important;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+}
+
+.modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.modal-dialog {
+    position: relative;
+    width: min(560px, 94vw);
+    max-height: min(84vh, 860px);
+    overflow: auto;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1rem 1.1rem 0.25rem;
+    border-bottom: 0;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.05rem;
+    letter-spacing: -0.01em;
+}
+
+.modal-body {
+    padding: 0.5rem 1.1rem 1.1rem;
+}
+
+body.modal-open {
+    overflow: hidden;
+}
+
+.modal-text {
+    margin: 0.25rem 0 0.75rem;
+    color: var(--muted);
+    font-size: 0.95rem;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.btn.btn-ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--text);
+}
+
+.btn.btn-ghost:hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+html.theme-dark .btn.btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
 /* Modo oscuro opcional (activado con clase en <html> + localStorage; botón en sidebar) */
 html.theme-dark body.app-body-root {
     --bg: #141414;

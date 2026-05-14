@@ -4,7 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/auth.php';
 
 if (current_user() !== null) {
-    redirect('index.php');
+    redirect(home_path_by_role());
 }
 
 $error = '';
@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!login_user($usuario, $password)) {
             $error = 'Credenciales incorrectas o usuario inactivo.';
         } else {
-            redirect('index.php');
+            redirect(home_path_by_role());
         }
     }
 }

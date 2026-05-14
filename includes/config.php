@@ -11,10 +11,7 @@ const DB_PASS = '';
 const DB_CHARSET = 'utf8mb4';
 const VENUE_MAX_CAPACITY = 120;
 
-/**
- * Ruta URL del proyecto bajo htdocs (sin barra final). Se calcula desde la carpeta real del proyecto.
- * Si la detección falla (poco habitual en XAMPP), ajusta el valor por defecto al nombre de tu carpeta en htdocs (sin espacios), p. ej. '/VivimosTodos'.
- */
+
 $__docRoot = realpath($_SERVER['DOCUMENT_ROOT'] ?? '');
 $__projectRoot = realpath(dirname(__DIR__));
 $__basePath = '/VivimosTodos'; // carpeta del proyecto en htdocs (la URL no lleva espacio)

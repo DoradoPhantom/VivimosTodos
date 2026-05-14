@@ -55,12 +55,26 @@ CREATE TABLE `reservas` (
   `usuario_id` int(10) UNSIGNED NOT NULL COMMENT 'Quien solicita la reserva',
   `fecha_evento` datetime NOT NULL COMMENT 'Inicio del evento (zona horaria del servidor)',
   `descripcion` varchar(500) DEFAULT NULL COMMENT 'Tipo de evento, notas',
-  `estado` enum('pendiente','aprobada','rechazada') NOT NULL DEFAULT 'pendiente',
+  `estado` enum('pendiente','aprobada','rechazada','cancelada') NOT NULL DEFAULT 'pendiente',
   `comentario_revision` varchar(500) DEFAULT NULL COMMENT 'Motivo del rechazo u observación del revisor',
   `revisado_por_id` int(10) UNSIGNED DEFAULT NULL,
   `revisado_en` datetime DEFAULT NULL,
   `creado_en` datetime NOT NULL DEFAULT current_timestamp(),
   `actualizado_en` datetime DEFAULT NULL ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `detalle_reserva`
+--
+
+CREATE TABLE `detalle_reserva` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `id_reserva` int(10) UNSIGNED NOT NULL,
+  `id_insumo` int(10) UNSIGNED NOT NULL,
+  `cantidad` int(10) UNSIGNED NOT NULL DEFAULT 1,
+  `creado_en` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -114,6 +128,14 @@ ALTER TABLE `reservas`
   ADD KEY `fk_reservas_revisor` (`revisado_por_id`);
 
 --
+-- Indices de la tabla `detalle_reserva`
+--
+ALTER TABLE `detalle_reserva`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_detalle_reserva_insumo` (`id_reserva`,`id_insumo`),
+  ADD KEY `idx_detalle_insumo` (`id_insumo`);
+
+--
 -- Indices de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
@@ -139,6 +161,12 @@ ALTER TABLE `reservas`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT de la tabla `detalle_reserva`
+--
+ALTER TABLE `detalle_reserva`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
@@ -154,6 +182,13 @@ ALTER TABLE `usuarios`
 ALTER TABLE `reservas`
   ADD CONSTRAINT `fk_reservas_revisor` FOREIGN KEY (`revisado_por_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_reservas_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`);
+
+--
+-- Filtros para la tabla `detalle_reserva`
+--
+ALTER TABLE `detalle_reserva`
+  ADD CONSTRAINT `fk_detalle_insumo` FOREIGN KEY (`id_insumo`) REFERENCES `insumos` (`id`) ON DELETE RESTRICT,
+  ADD CONSTRAINT `fk_detalle_reserva` FOREIGN KEY (`id_reserva`) REFERENCES `reservas` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

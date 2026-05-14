@@ -60,6 +60,35 @@ function can_manage_reservations(): bool
     return in_array($u['rol'], ['administrador', 'supervisor'], true);
 }
 
+function can_manage_users(): bool
+{
+    $u = current_user();
+    if ($u === null) {
+        return false;
+    }
+
+    return ($u['rol'] ?? '') === 'administrador';
+}
+
+function is_resident(): bool
+{
+    $u = current_user();
+    if ($u === null) {
+        return false;
+    }
+
+    return ($u['rol'] ?? '') === 'residente';
+}
+
+function home_path_by_role(): string
+{
+    if (can_manage_reservations()) {
+        return 'dashboard/index.php';
+    }
+
+    return 'index.php';
+}
+
 function login_user(string $usuario, string $password): bool
 {
     $stmt = db()->prepare(

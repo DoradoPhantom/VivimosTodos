@@ -4,6 +4,10 @@ if (!isset($pageTitle)) {
     $pageTitle = 'Vivimos Todos';
 }
 $user = current_user();
+$appBaseCssUrl = url('assets/css/01-app-base.css');
+if (is_file(dirname(__DIR__) . '/assets/css/01-app-base.css')) {
+    $appBaseCssUrl .= '?v=' . (string) filemtime(dirname(__DIR__) . '/assets/css/01-app-base.css');
+}
 $pendingReservations = 0;
 $pendingPreview = [];
 // detalle para acciones rápidas desde la campana
@@ -46,7 +50,7 @@ if ($user && can_manage_reservations()) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?></title>
     <!-- 1) Contenido y formularios (páginas PHP). 2) Barra lateral. 3) Barra superior. -->
-    <link rel="stylesheet" href="<?= htmlspecialchars(url('assets/css/01-app-base.css'), ENT_QUOTES, 'UTF-8') ?>">
+    <link rel="stylesheet" href="<?= htmlspecialchars($appBaseCssUrl, ENT_QUOTES, 'UTF-8') ?>">
     <link rel="stylesheet" href="<?= htmlspecialchars(url('assets/css/02-app-sidebar.css'), ENT_QUOTES, 'UTF-8') ?>">
     <link rel="stylesheet" href="<?= htmlspecialchars(url('assets/css/03-app-topbar.css'), ENT_QUOTES, 'UTF-8') ?>">
     <script>

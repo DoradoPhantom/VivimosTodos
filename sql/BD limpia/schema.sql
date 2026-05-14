@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS reservas (
   usuario_id INT UNSIGNED NOT NULL COMMENT 'Quien solicita la reserva',
   fecha_evento DATETIME NOT NULL COMMENT 'Inicio del evento (zona horaria del servidor)',
   descripcion VARCHAR(500) NULL COMMENT 'Tipo de evento, notas',
-  estado ENUM('pendiente', 'aprobada', 'rechazada') NOT NULL DEFAULT 'pendiente',
+  estado ENUM('pendiente', 'aprobada', 'rechazada', 'cancelada') NOT NULL DEFAULT 'pendiente',
   comentario_revision VARCHAR(500) NULL COMMENT 'Motivo del rechazo u observación del revisor',
   revisado_por_id INT UNSIGNED NULL,
   revisado_en DATETIME NULL,
@@ -64,6 +64,19 @@ CREATE TABLE IF NOT EXISTS reservas (
   KEY idx_reservas_fecha (fecha_evento),
   CONSTRAINT fk_reservas_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios (id) ON DELETE RESTRICT,
   CONSTRAINT fk_reservas_revisor FOREIGN KEY (revisado_por_id) REFERENCES usuarios (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS detalle_reserva (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  id_reserva INT UNSIGNED NOT NULL,
+  id_insumo INT UNSIGNED NOT NULL,
+  cantidad INT UNSIGNED NOT NULL DEFAULT 1,
+  creado_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_detalle_reserva_insumo (id_reserva, id_insumo),
+  KEY idx_detalle_insumo (id_insumo),
+  CONSTRAINT fk_detalle_reserva FOREIGN KEY (id_reserva) REFERENCES reservas (id) ON DELETE CASCADE,
+  CONSTRAINT fk_detalle_insumo FOREIGN KEY (id_insumo) REFERENCES insumos (id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Administrador inicial (contraseña: admin123). Cambiar tras el primer acceso.

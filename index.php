@@ -5,9 +5,13 @@ require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/reservas_rules.php';
 require_login();
 
+if (can_manage_reservations()) {
+    redirect('dashboard/index.php');
+}
+
 $pdo = db();
 $rol = (string) (current_user()['rol'] ?? '');
-$canSeeCalendar = in_array($rol, ['residente', 'supervisor'], true);
+$canSeeCalendar = $rol === 'residente';
 $canQuickReserve = $rol === 'residente';
 
 $error = '';
@@ -19,8 +23,11 @@ $insumoCantidades = [];
 $tz = new DateTimeZone(date_default_timezone_get());
 
 $hoy = new DateTimeImmutable('today', $tz);
+$ahora = new DateTimeImmutable('now', $tz);
 $inicioCalendario = $hoy->modify('first day of this month');
 $finVentana = $hoy->add(new DateInterval('P90D'))->setTime(23, 59, 59);
+$minReservaFecha = $ahora->add(new DateInterval('PT48H'))->format('Y-m-d');
+$maxReservaFecha = $ahora->add(new DateInterval('P90D'))->format('Y-m-d');
 
 $ocupacionPorDia = [];
 try {
@@ -144,10 +151,22 @@ if ($canQuickReserve && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Indica fecha y hora del evento.';
         } elseif ($error === '') {
             $ahora = new DateTimeImmutable('now');
+            $usuarioId = (int) (current_user()['id'] ?? 0);
             $ventana = reserva_validar_ventana_temporal($evento, $ahora);
             if ($ventana !== null) {
                 $error = $ventana;
-            } else {
+            }
+            $horarioSalon = reserva_validar_horario_salon($evento);
+            if ($error === '' && $horarioSalon !== null) {
+                $error = $horarioSalon;
+            }
+            if ($error === '' && reserva_existe_para_usuario_en_dia($pdo, $usuarioId, $evento)) {
+                $error = 'Ya tienes una reserva para este día.';
+            }
+            if ($error === '' && reserva_dia_ya_ocupado($pdo, $evento)) {
+                $error = 'Ya existe una reserva para este día.';
+            }
+            if ($error === '') {
                 $fmtDb = $evento->format('Y-m-d H:i:s');
                 $lineas = [];
                 $lineas[] = 'Asistentes solicitados: ' . $asistentesVal . ' (capacidad máxima: ' . VENUE_MAX_CAPACITY . ').';
@@ -167,21 +186,35 @@ if ($canQuickReserve && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 } 
                 $descripcionCompleta = implode("\n", $lineas);
                 try {
+                    $pdo->beginTransaction();
                     $stmt = $pdo->prepare(
                         'INSERT INTO reservas (usuario_id, fecha_evento, descripcion, estado) VALUES (?, ?, ?, \'pendiente\')'
                     );
                     $stmt->execute([
-                        (int) current_user()['id'],
+                        $usuarioId,
                         $fmtDb,
                         $descripcionCompleta,
                     ]);
+                    $reservaId = (int) $pdo->lastInsertId();
+                    if (count($insumoCantidades) > 0) {
+                        $stmtDet = $pdo->prepare(
+                            'INSERT INTO detalle_reserva (id_reserva, id_insumo, cantidad) VALUES (?, ?, ?)'
+                        );
+                        foreach ($insumoCantidades as $iid => $cant) {
+                            $stmtDet->execute([$reservaId, $iid, $cant]);
+                        }
+                    }
+                    $pdo->commit();
                     $message = 'Solicitud enviada. Un administrador o supervisor la revisará.';
                     $fechaVal = '';
                     $descVal = '';
                     $asistentesVal = 1;
                     $insumoCantidades = [];
                 } catch (PDOException $e) {
-                    $error = 'No se pudo guardar la reserva. Verifica la tabla reservas en la base de datos.';
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+                    $error = 'No se pudo guardar la reserva. Verifica que exista la tabla detalle_reserva en la base de datos.';
                 }
             }
         }
@@ -197,11 +230,12 @@ require __DIR__ . '/includes/header.php';
 <?php if ($canSeeCalendar): ?>
     <section class="reserva-calendario-wrap">
         <h2>Calendario de ocupación</h2>
-        <p class="muted">Rojo: día con reservas aprobadas. Amarillo: día con solicitudes pendientes.</p>
+        <p class="muted">Verde: día con reservas aprobadas. Amarillo: día con solicitudes pendientes. Gris: no disponible (regla de 48 horas o más de 90 días).</p>
         <div class="reserva-legend">
             <span class="chip chip-aprobada">Aprobada</span>
             <span class="chip chip-pendiente">Pendiente</span>
             <span class="chip">Disponible</span>
+            <span class="chip chip-no-disponible">No disponible</span>
         </div>
         <div class="reserva-calendarios">
             <?php foreach ($mesesCalendario as $mesInfo): ?>
@@ -223,7 +257,11 @@ require __DIR__ . '/includes/header.php';
                             $fechaKey = $fecha->format('Y-m-d');
                             $css = 'dia dia-libre';
                             $tooltip = 'Disponible';
-                            if (isset($ocupacionPorDia[$fechaKey])) {
+                            $fueraVentana = ($fechaKey < $minReservaFecha) || ($fechaKey > $maxReservaFecha);
+                            if ($fueraVentana) {
+                                $css = 'dia dia-no-disponible';
+                                $tooltip = 'No disponible por reglas de anticipación (48 horas) o límite máximo (90 días).';
+                            } elseif (isset($ocupacionPorDia[$fechaKey])) {
                                 $ap = (int) $ocupacionPorDia[$fechaKey]['aprobada'];
                                 $pe = (int) $ocupacionPorDia[$fechaKey]['pendiente'];
                                 if ($ap > 0) {

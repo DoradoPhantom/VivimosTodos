@@ -6,6 +6,7 @@ $user = current_user();
 if ($user === null) {
     return;
 }
+$isResident = is_resident();
 
 $sn = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
 $navActive = 'inicio';
@@ -61,12 +62,14 @@ if ($initials === '') {
         <p class="app-sidebar-section-label">Módulos</p>
         <ul class="app-sidebar-list">
             <li>
-                <a class="app-sidebar-link<?= $navActive === 'inicio' ? ' is-active' : '' ?>" href="<?= htmlspecialchars(url('index.php'), ENT_QUOTES, 'UTF-8') ?>">
-                    <span class="app-sidebar-icon" aria-hidden="true">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                    </span>
-                    Inicio
-                </a>
+                <?php if ($isResident): ?>
+                    <a class="app-sidebar-link<?= $navActive === 'inicio' ? ' is-active' : '' ?>" href="<?= htmlspecialchars(url('index.php'), ENT_QUOTES, 'UTF-8') ?>">
+                        <span class="app-sidebar-icon" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        </span>
+                        Inicio
+                    </a>
+                <?php endif; ?>
             </li>
             <?php if (can_manage_reservations()): ?>
                 <li>
@@ -96,17 +99,19 @@ if ($initials === '') {
             </li>
         </ul>
 
-        <?php if (in_array(($user['rol'] ?? ''), ['administrador', 'supervisor'], true)): ?>
+        <?php if (can_manage_reservations()): ?>
             <p class="app-sidebar-section-label">Administración</p>
             <ul class="app-sidebar-list">
-                <li>
-                    <a class="app-sidebar-link<?= $navActive === 'usuarios' ? ' is-active' : '' ?>" href="<?= htmlspecialchars(url('admin/usuarios.php'), ENT_QUOTES, 'UTF-8') ?>">
-                        <span class="app-sidebar-icon" aria-hidden="true">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        </span>
-                        Usuarios
-                    </a>
-                </li>
+                <?php if (can_manage_users()): ?>
+                    <li>
+                        <a class="app-sidebar-link<?= $navActive === 'usuarios' ? ' is-active' : '' ?>" href="<?= htmlspecialchars(url('admin/usuarios.php'), ENT_QUOTES, 'UTF-8') ?>">
+                            <span class="app-sidebar-icon" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            </span>
+                            Usuarios
+                        </a>
+                    </li>
+                <?php endif; ?>
                 <li>
                     <a class="app-sidebar-link<?= str_contains($sn, '/informes/') ? ' is-active' : '' ?>" href="<?= htmlspecialchars(url('informes/index.php'), ENT_QUOTES, 'UTF-8') ?>">
                         <span class="app-sidebar-icon" aria-hidden="true">

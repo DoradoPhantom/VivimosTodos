@@ -365,13 +365,19 @@ h2 {
 }
 
 .chip-aprobada {
-    background: rgba(220, 53, 69, 0.15);
-    border-color: #c45c6a;
+    background: rgba(25, 135, 84, 0.16);
+    border-color: #157347;
 }
 
 .chip-pendiente {
     background: rgba(255, 193, 7, 0.12);
     border-color: #b89a4a;
+}
+
+.chip-no-disponible {
+    background: #eceff3;
+    border-color: #b7bec8;
+    color: #4f5965;
 }
 
 .reserva-calendarios {
@@ -416,18 +422,40 @@ h2 {
     color: var(--text);
 }
 
+.dia-click {
+    appearance: none;
+    -webkit-appearance: none;
+    font: inherit;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    cursor: pointer;
+}
+
+.dia-click:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+}
+
 .dia-libre {
     background: var(--surface);
 }
 
 .dia-aprobada {
-    background: rgba(220, 53, 69, 0.2);
-    border-color: #c45c6a;
+    background: rgba(25, 135, 84, 0.2);
+    border-color: #157347;
 }
 
 .dia-pendiente {
     background: rgba(255, 193, 7, 0.15);
     border-color: #b89a4a;
+}
+
+.dia-no-disponible {
+    background: #eceff3;
+    border-color: #b7bec8;
+    color: #4f5965;
+    cursor: not-allowed;
 }
 
 .dia-vacio {

@@ -338,21 +338,497 @@ h2 {
     color: #1a1d21;
 }
 
-/* Calendario de reservas */
-.reserva-calendario-wrap {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1.1rem 1.2rem;
-    margin: 1rem 0 1.5rem;
-    box-shadow: var(--shadow);
+/* Calendario estilo Google Calendar */
+.gcal-wrap {
+    margin: 1.25rem 0 1.75rem;
 }
 
-.reserva-legend {
+.gcal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.gcal-toolbar {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.gcal-toolbar-start {
+    display: flex;
+    align-items: center;
     gap: 0.5rem;
     flex-wrap: wrap;
-    margin: 0.5rem 0 1rem;
+}
+
+.gcal-btn {
+    font: inherit;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 0.35rem 0.85rem;
+    line-height: 1.3;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.gcal-btn:hover {
+    background: rgba(13, 110, 253, 0.08);
+    border-color: #a8c8f5;
+}
+
+.gcal-btn-create {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+    font-weight: 600;
+    padding-left: 1.1rem;
+    padding-right: 1.1rem;
+}
+
+.gcal-btn-create:hover {
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
+    color: #fff;
+}
+
+.gcal-btn-today {
+    font-weight: 600;
+    min-width: 3.5rem;
+}
+
+.gcal-btn-icon {
+    width: 2.1rem;
+    height: 2.1rem;
+    padding: 0;
+    font-size: 1.25rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gcal-nav {
+    display: flex;
+    gap: 0.15rem;
+}
+
+.gcal-title {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    min-width: 10rem;
+}
+
+.gcal-legend {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.82rem;
+    color: var(--muted);
+}
+
+.gcal-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.gcal-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    display: inline-block;
+}
+
+.gcal-dot-aprobada {
+    background: #d93025;
+}
+
+.gcal-dot-pendiente {
+    background: #f9ab00;
+}
+
+.gcal-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    border-bottom: 1px solid var(--border);
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.gcal-weekdays span {
+    text-align: center;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    padding: 0.45rem 0;
+}
+
+.gcal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: minmax(7.5rem, auto);
+    min-height: 32rem;
+}
+
+.gcal-day {
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 0.2rem 0.25rem 0.35rem;
+    min-height: 7.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    background: var(--surface);
+    transition: background 0.12s;
+}
+
+.gcal-day:nth-child(7n) {
+    border-right: none;
+}
+
+.gcal-day.is-other-month {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.gcal-day.is-other-month .gcal-day-num {
+    color: var(--muted);
+    opacity: 0.55;
+}
+
+.gcal-day.is-disabled {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+.gcal-day.is-clickable:not(.is-disabled) {
+    cursor: pointer;
+}
+
+.gcal-day.is-clickable:not(.is-disabled):hover {
+    background: rgba(13, 110, 253, 0.06);
+}
+
+.gcal-day-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.65rem;
+    height: 1.65rem;
+    margin: 0.1rem 0 0 0.15rem;
+    font-size: 0.82rem;
+    font-weight: 500;
+    border-radius: 50%;
+}
+
+.gcal-day.is-today .gcal-day-num {
+    background: var(--primary);
+    color: #fff;
+}
+
+.gcal-day-events {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.gcal-event {
+    display: block;
+    width: 100%;
+    text-align: left;
+    border: none;
+    border-radius: 4px;
+    padding: 0.12rem 0.35rem;
+    font-size: 0.72rem;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    color: #1a1d21;
+    font-family: inherit;
+}
+
+.gcal-event--aprobada {
+    background: #f6aea9;
+    border-left: 3px solid #d93025;
+}
+
+.gcal-event--pendiente {
+    background: #fce8b2;
+    border-left: 3px solid #f9ab00;
+}
+
+.gcal-more {
+    font-size: 0.7rem;
+    color: var(--muted);
+    padding: 0 0.35rem;
+}
+
+.gcal-hint {
+    margin: 0.65rem 0 0;
+    font-size: 0.88rem;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+/* Popovers (crear / ver evento) */
+.gcal-popover[hidden] {
+    display: none !important;
+}
+
+.gcal-popover {
+    position: fixed;
+    inset: 0;
+    z-index: 2100;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 3.5rem 1rem 1rem;
+    overflow-y: auto;
+}
+
+.gcal-popover-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(32, 33, 36, 0.5);
+}
+
+.gcal-popover-card {
+    position: relative;
+    width: min(440px, 96vw);
+    background: var(--surface);
+    border-radius: 12px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+    overflow: hidden;
+    z-index: 1;
+}
+
+.gcal-popover-card--form {
+    width: min(480px, 96vw);
+}
+
+.gcal-popover-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.75rem 0.75rem 0;
+}
+
+.gcal-popover-head--form {
+    align-items: center;
+    padding-bottom: 0.25rem;
+}
+
+.gcal-popover-bar {
+    width: 4px;
+    align-self: stretch;
+    min-height: 2rem;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.gcal-popover-bar--new {
+    background: var(--primary);
+}
+
+.gcal-popover-bar--aprobada {
+    background: #d93025;
+}
+
+.gcal-popover-bar--pendiente {
+    background: #f9ab00;
+}
+
+.gcal-popover-close {
+    margin-left: auto;
+    border: none;
+    background: transparent;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--muted);
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+}
+
+.gcal-popover-close:hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.gcal-popover-body {
+    padding: 0.5rem 1.1rem 1.25rem;
+}
+
+.gcal-popover-title {
+    margin: 0 0 0.35rem;
+    font-size: 1.15rem;
+}
+
+.gcal-popover-meta {
+    margin: 0 0 0.5rem;
+    color: var(--muted);
+    font-size: 0.92rem;
+}
+
+.gcal-popover-estado {
+    display: inline-block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin: 0 0 0.75rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+}
+
+.gcal-estado-aprobada {
+    background: rgba(217, 48, 37, 0.12);
+    color: #c5221f;
+}
+
+.gcal-estado-pendiente {
+    background: rgba(249, 171, 0, 0.15);
+    color: #b06000;
+}
+
+.gcal-popover-desc {
+    margin: 0;
+    white-space: pre-wrap;
+    font-family: inherit;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    color: var(--text);
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+.gcal-popover-form-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    flex: 1;
+}
+
+.gcal-form {
+    padding: 0 1rem 1rem;
+}
+
+.gcal-form-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    margin-bottom: 0.85rem;
+    border: none;
+}
+
+.gcal-form-row--stack {
+    align-items: stretch;
+}
+
+.gcal-form-icon {
+    width: 1.5rem;
+    text-align: center;
+    flex-shrink: 0;
+    padding-top: 0.15rem;
+    opacity: 0.85;
+}
+
+.gcal-form-field {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.gcal-form-field input,
+.gcal-form-field textarea {
+    width: 100%;
+}
+
+.gcal-form-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--muted);
+}
+
+.gcal-form-date-label {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.gcal-form-rules {
+    margin: 0.2rem 0 0;
+    font-size: 0.8rem;
+}
+
+.gcal-time-pickers {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.gcal-time-field select {
+    min-width: 4.2rem;
+    padding: 0.45rem 0.5rem;
+    font-size: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+}
+
+.gcal-time-sep {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.gcal-form-details {
+    margin: 0 0 0.85rem 2.25rem;
+}
+
+.gcal-form-details summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+}
+
+.gcal-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border);
+    margin-top: 0.5rem;
+}
+
+body.gcal-modal-open {
+    overflow: hidden;
 }
 
 .chip {
@@ -362,77 +838,6 @@ h2 {
     border: 1px solid var(--border);
     background: var(--surface);
     font-size: 0.82rem;
-}
-
-.chip-aprobada {
-    background: rgba(220, 53, 69, 0.15);
-    border-color: #c45c6a;
-}
-
-.chip-pendiente {
-    background: rgba(255, 193, 7, 0.12);
-    border-color: #b89a4a;
-}
-
-.reserva-calendarios {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1rem;
-}
-
-.reserva-mes {
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--surface);
-    padding: 0.75rem;
-}
-
-.reserva-mes h3 {
-    margin: 0 0 0.6rem;
-}
-
-.reserva-grid {
-    display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 0.28rem;
-}
-
-.reserva-grid-head span {
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--muted);
-    text-align: center;
-}
-
-.dia {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 1.85rem;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    font-size: 0.85rem;
-    background: var(--surface);
-    color: var(--text);
-}
-
-.dia-libre {
-    background: var(--surface);
-}
-
-.dia-aprobada {
-    background: rgba(220, 53, 69, 0.2);
-    border-color: #c45c6a;
-}
-
-.dia-pendiente {
-    background: rgba(255, 193, 7, 0.15);
-    border-color: #b89a4a;
-}
-
-.dia-vacio {
-    border: none;
-    background: transparent;
 }
 
 .insumos-grid {
@@ -591,14 +996,42 @@ html.theme-dark .alert-error {
     border-color: #991b1b;
 }
 
-html.theme-dark .reserva-mes {
-    background: #252525;
+html.theme-dark .gcal {
+    background: #1e1e1e;
 }
 
-html.theme-dark .dia,
-html.theme-dark .dia-libre {
-    background: #2a2a2a;
-    color: var(--text);
+html.theme-dark .gcal-day {
+    background: #1e1e1e;
+}
+
+html.theme-dark .gcal-day.is-other-month {
+    background: #181818;
+}
+
+html.theme-dark .gcal-event {
+    color: #ececec;
+}
+
+html.theme-dark .gcal-event--aprobada {
+    background: rgba(217, 48, 37, 0.35);
+}
+
+html.theme-dark .gcal-event--pendiente {
+    background: rgba(249, 171, 0, 0.28);
+}
+
+html.theme-dark .gcal-time-field select {
+    background: #252525;
+    border-color: #444;
+}
+
+html.theme-dark .gcal-btn {
+    background: #252525;
+    border-color: #444;
+}
+
+html.theme-dark .gcal-weekdays {
+    background: #252525;
 }
 
 html.theme-dark .insumo-item {

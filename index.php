@@ -3,12 +3,13 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/reservas_rules.php';
+require_once __DIR__ . '/includes/calendario_ocupacion.php';
 require_login();
 
 $pdo = db();
 $rol = (string) (current_user()['rol'] ?? '');
-$canSeeCalendar = in_array($rol, ['residente', 'supervisor'], true);
-$canQuickReserve = $rol === 'residente';
+$canSeeCalendar = in_array($rol, ['residente', 'supervisor', 'administrador'], true);
+$canQuickReserve = in_array($rol, ['residente', 'supervisor', 'administrador'], true);
 
 $error = '';
 $message = '';
@@ -19,62 +20,19 @@ $insumoCantidades = [];
 $tz = new DateTimeZone(date_default_timezone_get());
 
 $hoy = new DateTimeImmutable('today', $tz);
-$inicioCalendario = $hoy->modify('first day of this month');
-$finVentana = $hoy->add(new DateInterval('P90D'))->setTime(23, 59, 59);
+$ahora = new DateTimeImmutable('now', $tz);
+$inicioCalendario = $hoy->modify('first day of this month')->setTime(0, 0, 0);
+$finVentana = $ahora->add(new DateInterval('P90D'))->setTime(23, 59, 59);
+$minReserva = $ahora->add(new DateInterval('PT48H'));
+$maxReserva = $ahora->add(new DateInterval('P90D'));
 
-$ocupacionPorDia = [];
-try {
-    $stmtDias = $pdo->prepare(
-        'SELECT DATE(fecha_evento) AS dia, estado, COUNT(*) AS total
-         FROM reservas
-         WHERE estado IN (\'pendiente\', \'aprobada\')
-           AND fecha_evento >= ?
-           AND fecha_evento <= ?
-         GROUP BY DATE(fecha_evento), estado'
-    );
-    $stmtDias->execute([
-        $inicioCalendario->format('Y-m-d H:i:s'),
-        $finVentana->format('Y-m-d H:i:s'),
-    ]);
-    foreach ($stmtDias->fetchAll() as $r) {
-        $dia = (string) ($r['dia'] ?? '');
-        if ($dia === '') {
-            continue;
-        }
-        if (!isset($ocupacionPorDia[$dia])) {
-            $ocupacionPorDia[$dia] = ['aprobada' => 0, 'pendiente' => 0];
-        }
-        $estado = (string) ($r['estado'] ?? '');
-        if ($estado === 'aprobada' || $estado === 'pendiente') {
-            $ocupacionPorDia[$dia][$estado] = (int) ($r['total'] ?? 0);
-        }
-    }
-} catch (PDOException $e) {
-    $ocupacionPorDia = [];
-}
-
-$proximosEventos = [];
-try {
-    $stmtEventos = $pdo->prepare(
-        'SELECT fecha_evento, descripcion, estado
-         FROM reservas
-         WHERE fecha_evento >= ?
-           AND fecha_evento <= ?
-           AND estado IN (\'pendiente\', \'aprobada\')
-         ORDER BY fecha_evento ASC
-         LIMIT 25'
-    );
-    $stmtEventos->execute([
-        $hoy->format('Y-m-d 00:00:00'),
-        $finVentana->format('Y-m-d H:i:s'),
-    ]);
-    $proximosEventos = $stmtEventos->fetchAll();
-} catch (PDOException $e) {
-    $proximosEventos = [];
+$eventosCalendario = [];
+if ($canSeeCalendar) {
+    $eventosCalendario = calendario_obtener_eventos($pdo, $inicioCalendario, $finVentana);
 }
 
 $insumosDisponibles = [];
-if ($canQuickReserve) {
+if ($canQuickReserve && $rol === 'residente') {
     try {
         $stmtInsumos = $pdo->query(
             'SELECT id, nombre, categoria, cantidad_stock, unidad_medida
@@ -99,17 +57,6 @@ if ($canQuickReserve) {
     } catch (PDOException $e) {
         $insumosDisponibles = [];
     }
-}
-
-$mesesCalendario = [];
-for ($i = 0; $i < 3; $i++) {
-    $mes = $inicioCalendario->modify('+' . $i . ' month');
-    $mesesCalendario[] = [
-        'titulo' => ucfirst((string) $mes->format('F Y')),
-        'inicio' => $mes,
-        'dias' => (int) $mes->format('t'),
-        'inicioSemana' => (int) $mes->format('N'),
-    ];
 }
 
 if ($canQuickReserve && $_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -143,7 +90,6 @@ if ($canQuickReserve && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($error === '' && $evento === null) {
             $error = 'Indica fecha y hora del evento.';
         } elseif ($error === '') {
-            $ahora = new DateTimeImmutable('now');
             $ventana = reserva_validar_ventana_temporal($evento, $ahora);
             if ($ventana !== null) {
                 $error = $ventana;
@@ -164,7 +110,7 @@ if ($canQuickReserve && $_SERVER['REQUEST_METHOD'] === 'POST') {
                     $lineas[] = '';
                     $lineas[] = 'Notas del solicitante:';
                     $lineas[] = $descVal;
-                } 
+                }
                 $descripcionCompleta = implode("\n", $lineas);
                 try {
                     $stmt = $pdo->prepare(
@@ -180,12 +126,18 @@ if ($canQuickReserve && $_SERVER['REQUEST_METHOD'] === 'POST') {
                     $descVal = '';
                     $asistentesVal = 1;
                     $insumoCantidades = [];
+                    $eventosCalendario = calendario_obtener_eventos($pdo, $inicioCalendario, $finVentana);
                 } catch (PDOException $e) {
                     $error = 'No se pudo guardar la reserva. Verifica la tabla reservas en la base de datos.';
                 }
             }
         }
     }
+}
+
+$reopenDate = '';
+if ($error !== '' && $_SERVER['REQUEST_METHOD'] === 'POST' && $fechaVal !== '') {
+    $reopenDate = substr($fechaVal, 0, 10);
 }
 
 $pageTitle = 'Inicio';
@@ -195,206 +147,30 @@ require __DIR__ . '/includes/header.php';
 <p class="lead">Panel principal del sistema.</p>
 
 <?php if ($canSeeCalendar): ?>
-    <section class="reserva-calendario-wrap">
-        <h2>Calendario de ocupación</h2>
-        <p class="muted">Rojo: día con reservas aprobadas. Amarillo: día con solicitudes pendientes.</p>
-        <div class="reserva-legend">
-            <span class="chip chip-aprobada">Aprobada</span>
-            <span class="chip chip-pendiente">Pendiente</span>
-            <span class="chip">Disponible</span>
-        </div>
-        <div class="reserva-calendarios">
-            <?php foreach ($mesesCalendario as $mesInfo): ?>
-                <article class="reserva-mes">
-                    <h3><?= htmlspecialchars($mesInfo['titulo'], ENT_QUOTES, 'UTF-8') ?></h3>
-                    <div class="reserva-grid reserva-grid-head">
-                        <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
-                    </div>
-                    <div class="reserva-grid">
-                        <?php for ($vac = 1; $vac < $mesInfo['inicioSemana']; $vac++): ?>
-                            <span class="dia dia-vacio"></span>
-                        <?php endfor; ?>
-                        <?php for ($d = 1; $d <= $mesInfo['dias']; $d++):
-                            $fecha = $mesInfo['inicio']->setDate(
-                                (int) $mesInfo['inicio']->format('Y'),
-                                (int) $mesInfo['inicio']->format('m'),
-                                $d
-                            );
-                            $fechaKey = $fecha->format('Y-m-d');
-                            $css = 'dia dia-libre';
-                            $tooltip = 'Disponible';
-                            if (isset($ocupacionPorDia[$fechaKey])) {
-                                $ap = (int) $ocupacionPorDia[$fechaKey]['aprobada'];
-                                $pe = (int) $ocupacionPorDia[$fechaKey]['pendiente'];
-                                if ($ap > 0) {
-                                    $css = 'dia dia-aprobada';
-                                    $tooltip = 'Aprobadas: ' . $ap . ($pe > 0 ? ' | Pendientes: ' . $pe : '');
-                                } elseif ($pe > 0) {
-                                    $css = 'dia dia-pendiente';
-                                    $tooltip = 'Pendientes: ' . $pe;
-                                }
-                            }
-                        ?>
-                            <?php if ($canQuickReserve): ?>
-                                <button
-                                    type="button"
-                                    class="<?= htmlspecialchars($css, ENT_QUOTES, 'UTF-8') ?> dia-click"
-                                    title="<?= htmlspecialchars($tooltip, ENT_QUOTES, 'UTF-8') ?>"
-                                    data-date="<?= htmlspecialchars($fechaKey, ENT_QUOTES, 'UTF-8') ?>"
-                                ><?= $d ?></button>
-                            <?php else: ?>
-                                <span class="<?= htmlspecialchars($css, ENT_QUOTES, 'UTF-8') ?>" title="<?= htmlspecialchars($tooltip, ENT_QUOTES, 'UTF-8') ?>"><?= $d ?></span>
-                            <?php endif; ?>
-                        <?php endfor; ?>
-                    </div>
-                </article>
-            <?php endforeach; ?>
-        </div>
-    </section>
-
-    <section class="section">
-        <h2>Próximos eventos programados</h2>
-        <p class="muted">Se listan solicitudes pendientes y reservas aprobadas de los próximos 90 días.</p>
-        <div class="table-wrap">
-            <table class="data-table">
-                <thead>
-                <tr>
-                    <th>Fecha del evento</th>
-                    <th>Detalle</th>
-                    <th>Estado</th>
-                </tr>
-                </thead>
-                <tbody>
-                <?php foreach ($proximosEventos as $ev): ?>
-                    <?php
-                    $estadoRaw = (string) ($ev['estado'] ?? '');
-                    $estadoTxt = $estadoRaw === 'aprobada'
-                        ? 'Aprobada'
-                        : ($estadoRaw === 'pendiente' ? 'Pendiente' : $estadoRaw);
-                    ?>
-                    <tr>
-                        <td><?= htmlspecialchars(reserva_formato_tabla((string) $ev['fecha_evento']), ENT_QUOTES, 'UTF-8') ?></td>
-                        <td><?= ($ev['descripcion'] ?? '') !== ''
-                            ? nl2br(htmlspecialchars((string) $ev['descripcion'], ENT_QUOTES, 'UTF-8'))
-                            : '—' ?></td>
-                        <td><?= htmlspecialchars($estadoTxt, ENT_QUOTES, 'UTF-8') ?></td>
-                    </tr>
-                <?php endforeach; ?>
-                <?php if (count($proximosEventos) === 0): ?>
-                    <tr><td colspan="3">No hay eventos programados en la ventana actual.</td></tr>
-                <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </section>
-
-    <?php if ($canQuickReserve): ?>
-        <?php if ($message !== ''): ?>
-            <div class="alert alert-success"><?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?></div>
-        <?php endif; ?>
-        <?php if ($error !== ''): ?>
-            <div class="alert alert-error"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div>
-        <?php endif; ?>
+    <?php if ($message !== ''): ?>
+        <div class="alert alert-success"><?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?></div>
     <?php endif; ?>
+    <?php if ($error !== ''): ?>
+        <div class="alert alert-error"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div>
+    <?php endif; ?>
+
+    <?php
+    calendario_render([
+        'eventos' => $eventosCalendario,
+        'puede_reservar' => $canQuickReserve,
+        'csrf' => csrf_token(),
+        'insumos' => $insumosDisponibles,
+        'asistentes_val' => $asistentesVal,
+        'desc_val' => $descVal,
+        'insumo_cantidades' => $insumoCantidades,
+        'fecha_val' => $fechaVal,
+        'min_date' => $minReserva->format('Y-m-d'),
+        'max_date' => $maxReserva->format('Y-m-d'),
+        'hoy' => $hoy->format('Y-m-d'),
+        'reopen_date' => $reopenDate,
+    ]);
+    ?>
+    <script src="<?= htmlspecialchars(url('assets/js/calendario-gcal.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <?php endif; ?>
 
-<?php if ($canQuickReserve): ?>
-    <div class="modal" id="reserva-modal" hidden>
-        <div class="modal-backdrop" data-modal-close></div>
-        <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="reserva-modal-title">
-            <div class="modal-header">
-                <h2 id="reserva-modal-title">Solicitar reserva</h2>
-                <button type="button" class="btn btn-sm btn-ghost" data-modal-close>Cancelar</button>
-            </div>
-            <div class="modal-body">
-                <p class="modal-text">Completa los datos para enviar la solicitud.</p>
-                <form method="post" class="form-grid">
-                    <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
-                    <label>Aforo estimado (personas)
-                        <input type="number" name="asistentes" min="1" max="<?= VENUE_MAX_CAPACITY ?>" required value="<?= (int) $asistentesVal ?>">
-                        <small class="muted">Capacidad máxima del salón: <?= VENUE_MAX_CAPACITY ?> personas.</small>
-                    </label>
-                    <label class="full">Fecha y hora del evento
-                        <input id="reserva-modal-fecha" type="datetime-local" name="fecha_evento" required value="<?= htmlspecialchars($fechaVal, ENT_QUOTES, 'UTF-8') ?>">
-                        <small class="muted">Selecciona el día en el calendario para autocompletar la fecha.</small>
-                    </label>
-                    <div class="full">
-                        <label>Insumos solicitados (opcional)</label>
-                        <?php if (count($insumosDisponibles) > 0): ?>
-                            <div class="insumos-grid">
-                                <?php foreach ($insumosDisponibles as $ins): ?>
-                                    <?php $iid = (int) $ins['id']; ?>
-                                    <label class="insumo-item">
-                                        <span class="insumo-titulo"><?= htmlspecialchars($ins['nombre'], ENT_QUOTES, 'UTF-8') ?></span>
-                                        <small class="muted">Disp.: <?= (int) $ins['stock'] ?><?= $ins['categoria'] !== '' ? ' · ' . htmlspecialchars($ins['categoria'], ENT_QUOTES, 'UTF-8') : '' ?></small>
-                                        <input
-                                            type="number"
-                                            name="insumo_cantidad[<?= $iid ?>]"
-                                            min="0"
-                                            max="<?= (int) $ins['stock'] ?>"
-                                            value="<?= isset($insumoCantidades[$iid]) ? (int) $insumoCantidades[$iid] : 0 ?>"
-                                        >
-                                    </label>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php else: ?>
-                            <p class="muted">No hay insumos cargados aún en el catálogo.</p>
-                        <?php endif; ?>
-                    </div>
-                    <label class="full">Descripción (opcional)
-                        <textarea name="descripcion" rows="3" placeholder="Tipo de evento, número de asistentes, etc."><?= htmlspecialchars($descVal, ENT_QUOTES, 'UTF-8') ?></textarea>
-                    </label>
-                    <div class="modal-actions full">
-                        <a class="btn btn-outline" href="<?= htmlspecialchars(url('reservas/index.php'), ENT_QUOTES, 'UTF-8') ?>">Ver mis reservas</a>
-                        <button type="submit" class="btn btn-primary">Enviar solicitud</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <script>
-    (function () {
-        var modal = document.getElementById('reserva-modal');
-        var fechaInput = document.getElementById('reserva-modal-fecha');
-        if (!modal || !fechaInput) return;
-
-        // "Portal": mover el modal al final del body para que nunca se comporte como bloque del layout
-        if (modal.parentElement !== document.body) {
-            document.body.appendChild(modal);
-        }
-
-        function openModal(dateStr) {
-            if (dateStr) fechaInput.value = dateStr + 'T18:00';
-            modal.hidden = false;
-            document.body.classList.add('modal-open');
-            fechaInput.focus();
-        }
-
-        function closeModal() {
-            modal.hidden = true;
-            document.body.classList.remove('modal-open');
-        }
-
-        modal.addEventListener('click', function (ev) {
-            var t = ev.target;
-            if (t && t.matches('[data-modal-close]')) closeModal();
-        });
-
-        document.addEventListener('keydown', function (ev) {
-            if (ev.key === 'Escape' && !modal.hidden) closeModal();
-        });
-
-        document.addEventListener('click', function (ev) {
-            var btn = ev.target && ev.target.closest ? ev.target.closest('.dia-click[data-date]') : null;
-            if (!btn) return;
-            openModal(btn.getAttribute('data-date') || '');
-        });
-
-        <?php if ($error !== '' && $_SERVER['REQUEST_METHOD'] === 'POST'): ?>
-        openModal('<?= htmlspecialchars(substr((string) $fechaVal, 0, 10), ENT_QUOTES, 'UTF-8') ?>');
-        <?php endif; ?>
-    })();
-    </script>
-<?php endif; ?>
 <?php require __DIR__ . '/includes/footer.php'; ?>

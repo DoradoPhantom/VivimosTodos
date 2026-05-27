@@ -7,6 +7,9 @@
     ];
     var DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
+    var HORA_MIN = 12;
+    var HORA_MAX = 23;
+
     function pad(n) {
         return n < 10 ? '0' + n : String(n);
     }
@@ -41,9 +44,37 @@
         return h12 + ':' + min + ' ' + suf;
     }
 
+    function toH12(h24) {
+        var h12 = h24 % 12;
+        if (h12 === 0) h12 = 12;
+        return h12;
+    }
+
     function formatFechaEvento(fechaMysql) {
         var d = fechaMysql.split(' ')[0];
         return formatFechaLarga(d) + ' · ' + formatHora(fechaMysql);
+    }
+
+    function getCurrentUserId(root) {
+        return parseInt(root.getAttribute('data-current-user') || '0', 10);
+    }
+
+    function getEventClass(ev, currentUserId) {
+        if (ev.estado === 'pendiente') return 'pendiente';
+        var esPropia = (parseInt(ev.usuario_id, 10) === currentUserId);
+        return esPropia ? 'aprobada' : 'ocupado';
+    }
+
+    function renderHourOptions(hourSelect) {
+        if (!hourSelect) return;
+        hourSelect.innerHTML = '';
+        for (var i = 1; i <= 12; i++) {
+            var h24 = i === 12 ? 12 : i + 12;
+            var opt = document.createElement('option');
+            opt.value = pad(h24);
+            opt.textContent = String(i);
+            hourSelect.appendChild(opt);
+        }
     }
 
     function init() {
@@ -61,6 +92,7 @@
             events = [];
         }
 
+        var currentUserId = getCurrentUserId(root);
         var hoyKey = root.getAttribute('data-hoy') || '';
         var minKey = root.getAttribute('data-min') || '';
         var maxKey = root.getAttribute('data-max') || '';
@@ -85,22 +117,24 @@
         var dateLabel = document.querySelector('[data-gcal-date-label]');
         var hourSelect = document.querySelector('[data-gcal-hour]');
         var minuteSelect = document.querySelector('[data-gcal-minute]');
+        var formError = document.querySelector('[data-gcal-form-error]');
 
-        if (hourSelect) {
-            for (var h = 6; h <= 23; h++) {
-                var opt = document.createElement('option');
-                opt.value = pad(h);
-                opt.textContent = pad(h);
-                hourSelect.appendChild(opt);
+        renderHourOptions(hourSelect);
+
+        if (minuteSelect) {
+            minuteSelect.innerHTML = '';
+            for (var mi = 0; mi < 60; mi += 5) {
+                var o = document.createElement('option');
+                o.value = pad(mi);
+                o.textContent = pad(mi);
+                minuteSelect.appendChild(o);
             }
         }
-        if (minuteSelect) {
-            [0, 15, 30, 45].forEach(function (m) {
-                var o = document.createElement('option');
-                o.value = pad(m);
-                o.textContent = pad(m);
-                minuteSelect.appendChild(o);
-            });
+
+        var errorAttr = root.getAttribute('data-error');
+        if (errorAttr && formError) {
+            formError.textContent = errorAttr;
+            formError.hidden = false;
         }
 
         function isInRange(dateKey) {
@@ -146,15 +180,17 @@
             var fec = detailModal.querySelector('[data-gcal-detail-fecha]');
             var est = detailModal.querySelector('[data-gcal-detail-estado]');
             var desc = detailModal.querySelector('[data-gcal-detail-desc]');
-            var estado = ev.estado === 'aprobada' ? 'Aprobada' : 'Pendiente';
+            var evClass = getEventClass(ev, currentUserId);
+            var estado = evClass === 'aprobada' ? 'Aprobada' : (evClass === 'pendiente' ? 'Pendiente' : 'Ocupado');
+            var barClass = evClass;
             if (bar) {
-                bar.className = 'gcal-popover-bar ' + (ev.estado === 'aprobada' ? 'gcal-popover-bar--aprobada' : 'gcal-popover-bar--pendiente');
+                bar.className = 'gcal-popover-bar gcal-popover-bar--' + barClass;
             }
             if (tit) tit.textContent = ev.titulo || 'Reserva del salón';
             if (fec) fec.textContent = formatFechaEvento(ev.fecha || '');
             if (est) {
                 est.textContent = estado;
-                est.className = 'gcal-popover-estado gcal-estado-' + (ev.estado || 'pendiente');
+                est.className = 'gcal-popover-estado gcal-estado-' + evClass;
             }
             if (desc) desc.textContent = ev.descripcion || 'Sin descripción adicional.';
             openPopover(detailModal);
@@ -163,6 +199,10 @@
         function openReserve(dateKey) {
             if (!canReserve || !reserveModal) return;
             if (!isInRange(dateKey)) return;
+            if (formError) {
+                formError.textContent = '';
+                formError.hidden = true;
+            }
             if (hourSelect) hourSelect.value = '18';
             if (minuteSelect) minuteSelect.value = '00';
             syncHiddenDate(dateKey);
@@ -214,17 +254,40 @@
                 var inRange = isInRange(dateKey);
                 var dayEvents = eventsByDay[dateKey] || [];
 
+                var isOwnApproved = false;
+                var isOwnApproved = false;
+                var isPending = false;
+                var otherApproved = false;
+                dayEvents.forEach(function (ev) {
+                    if (ev.estado === 'pendiente') {
+                        isPending = true;
+                    } else if (ev.estado === 'aprobada') {
+                        var esPropia = (parseInt(ev.usuario_id, 10) === currentUserId);
+                        if (esPropia) {
+                            isOwnApproved = true;
+                        } else {
+                            otherApproved = true;
+                        }
+                    }
+                });
+
                 var cell = document.createElement('div');
                 cell.className = 'gcal-day';
                 cell.setAttribute('role', 'gridcell');
                 if (otherMonth) cell.classList.add('is-other-month');
                 if (isToday) cell.classList.add('is-today');
                 if (!inRange) cell.classList.add('is-disabled');
-                if (dayEvents.some(function (e) { return e.estado === 'aprobada'; })) {
-                    cell.classList.add('has-aprobada');
+
+                if (isPending) {
+                    cell.classList.add('has-pendiente-propia');
+                } else if (isOwnApproved) {
+                    cell.classList.add('has-aprobada-propia');
+                } else if (otherApproved) {
+                    cell.classList.add('has-ocupado');
                 } else if (dayEvents.length > 0) {
-                    cell.classList.add('has-pendiente');
+                    cell.classList.add('has-ocupado');
                 }
+
                 cell.dataset.date = dateKey;
 
                 var num = document.createElement('span');
@@ -237,7 +300,8 @@
                 dayEvents.slice(0, 3).forEach(function (ev) {
                     var btn = document.createElement('button');
                     btn.type = 'button';
-                    btn.className = 'gcal-event gcal-event--' + (ev.estado === 'aprobada' ? 'aprobada' : 'pendiente');
+                    var evClass = getEventClass(ev, currentUserId);
+                    btn.className = 'gcal-event gcal-event--' + evClass;
                     btn.textContent = formatHora(ev.fecha) + ' ' + (ev.titulo || 'Reserva');
                     btn.addEventListener('click', function (e) {
                         e.stopPropagation();
@@ -253,7 +317,7 @@
                 }
                 cell.appendChild(evWrap);
 
-                if (canReserve && inRange && !otherMonth) {
+                if (canReserve && inRange && !otherMonth && dayEvents.length === 0) {
                     cell.classList.add('is-clickable');
                     cell.addEventListener('click', function (dk) {
                         return function () {
@@ -265,6 +329,9 @@
                     cell.addEventListener('click', function (list) {
                         return function () {
                             if (list.length === 1) showEventDetail(list[0]);
+                            else if (list.length > 1) {
+                                showEventDetail(list[0]);
+                            }
                         };
                     }(dayEvents));
                 }

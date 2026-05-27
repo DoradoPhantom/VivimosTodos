@@ -1,23 +1,21 @@
 <?php
 declare(strict_types=1);
 
-/**
- * Ajusta credenciales según tu instalación de XAMPP.
- */
+// Config global base de datos ruta en htdocs y reglas del salon
+// Se carga antes de db y auth en casi todas las paginas
 const DB_HOST = 'localhost';
 const DB_NAME = 'vivimos_todos';
 const DB_USER = 'root';
 const DB_PASS = '';
 const DB_CHARSET = 'utf8mb4';
+// Aforo maximo del salon al crear reservas
 const VENUE_MAX_CAPACITY = 120;
 
-/**
- * Ruta URL del proyecto bajo htdocs (sin barra final). Se calcula desde la carpeta real del proyecto.
- * Si la detección falla (poco habitual en XAMPP), ajusta el valor por defecto al nombre de tu carpeta en htdocs (sin espacios), p. ej. '/VivimosTodos'.
- */
+// Ruta URL del proyecto bajo htdocs sin barra final
+// Si falla la deteccion cambia la carpeta por defecto en htdocs por ejemplo VivimosTodos
 $__docRoot = realpath($_SERVER['DOCUMENT_ROOT'] ?? '');
 $__projectRoot = realpath(dirname(__DIR__));
-$__basePath = '/VivimosTodos'; // carpeta del proyecto en htdocs (la URL no lleva espacio)
+$__basePath = '/VivimosTodos'; // carpeta del proyecto en htdocs
 if ($__docRoot !== false && $__projectRoot !== false) {
     $__d = str_replace('\\', '/', rtrim($__docRoot, '/\\'));
     $__p = str_replace('\\', '/', rtrim($__projectRoot, '/\\'));

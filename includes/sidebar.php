@@ -1,21 +1,26 @@
 <?php
 declare(strict_types=1);
 
-/** Barra lateral: enlaces según módulos reales del proyecto. */
+// Barra lateral con enlaces por modulo
 $user = current_user();
 if ($user === null) {
     return;
 }
 
+// Marcar enlace activo segun la pagina actual
 $sn = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
 $navActive = 'inicio';
-if (str_contains($sn, '/inventario/')) {
+if (str_contains($sn, '/dashboard/')) {
+    $navActive = 'dashboard';
+} elseif (str_contains($sn, '/inventario/')) {
     $navActive = 'inventario';
 } elseif (str_contains($sn, '/reservas/')) {
     $navActive = 'reservas';
 } elseif (str_contains($sn, '/admin/')) {
     $navActive = 'usuarios';
-} elseif (preg_match('#/index\.php$#', $sn) && !preg_match('#/(inventario|reservas|admin)/#', $sn)) {
+} elseif (str_contains($sn, '/informes/')) {
+    $navActive = 'informes';
+} elseif (preg_match('#/index\.php$#', $sn)) {
     $navActive = 'inicio';
 }
 
@@ -70,7 +75,7 @@ if ($initials === '') {
             </li>
             <?php if (can_manage_reservations()): ?>
                 <li>
-                    <a class="app-sidebar-link<?= str_contains($sn, '/dashboard/') ? ' is-active' : '' ?>" href="<?= htmlspecialchars(url('dashboard/index.php'), ENT_QUOTES, 'UTF-8') ?>">
+                    <a class="app-sidebar-link<?= $navActive === 'dashboard' ? ' is-active' : '' ?>" href="<?= htmlspecialchars(url('dashboard/index.php'), ENT_QUOTES, 'UTF-8') ?>">
                         <span class="app-sidebar-icon" aria-hidden="true">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
                         </span>
@@ -108,7 +113,7 @@ if ($initials === '') {
                     </a>
                 </li>
                 <li>
-                    <a class="app-sidebar-link<?= str_contains($sn, '/informes/') ? ' is-active' : '' ?>" href="<?= htmlspecialchars(url('informes/index.php'), ENT_QUOTES, 'UTF-8') ?>">
+                    <a class="app-sidebar-link<?= $navActive === 'informes' ? ' is-active' : '' ?>" href="<?= htmlspecialchars(url('informes/index.php'), ENT_QUOTES, 'UTF-8') ?>">
                         <span class="app-sidebar-icon" aria-hidden="true">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="M9 15h6"/></svg>
                         </span>

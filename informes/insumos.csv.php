@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+// Exportar catalogo de insumos a CSV sin pagina HTML
 require_once dirname(__DIR__) . '/includes/auth.php';
 require_login();
 
@@ -33,7 +34,7 @@ fputcsv($out, [
 
 $rows = [];
 try {
-    // estado_operativo puede no existir aún; si falla, reintentamos sin la columna
+    // Si falta la columna estado_operativo se exporta sin ella
     $rows = $pdo->query(
         'SELECT id, codigo, nombre, categoria, cantidad_stock, precio_unitario, estado_operativo, activo
          FROM insumos

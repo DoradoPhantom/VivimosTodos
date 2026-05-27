@@ -21,31 +21,40 @@ $tz = new DateTimeZone(date_default_timezone_get());
 
 $hoy = new DateTimeImmutable('today', $tz);
 $ahora = new DateTimeImmutable('now', $tz);
-$inicioCalendario = $hoy->modify('first day of this month')->setTime(0, 0, 0);
+$inicioCalendario = $hoy->modify('-'.MESES_CALENDARIO_ATRAS.' months')->modify('first day of this month')->setTime(0, 0, 0);
 $finVentana = $ahora->add(new DateInterval('P90D'))->setTime(23, 59, 59);
+$finCalendario = $ahora->add(new DateInterval('P' . MESES_CALENDARIO_ADELANTE . 'M'))->setTime(23, 59, 59);
+$maxDateCalendario = $finCalendario->format('Y-m-d');
+
 $minReserva = $ahora->add(new DateInterval('PT48H'));
 $maxReserva = $ahora->add(new DateInterval('P90D'));
 
 $eventosCalendario = [];
 if ($canSeeCalendar) {
-    $eventosCalendario = calendario_obtener_eventos($pdo, $inicioCalendario, $finVentana);
+    $eventosCalendario = calendario_obtener_eventos($pdo, $inicioCalendario, $finCalendario, current_user());
 }
 
 $insumosDisponibles = [];
-if ($canQuickReserve && $rol === 'residente') {
+if ($canQuickReserve) {
+    $insumosQuery = 'SELECT id, nombre, categoria, cantidad_stock, unidad_medida, estado_operativo
+                     FROM insumos
+                     WHERE activo = 1
+                     ORDER BY nombre ASC';
     try {
-        $stmtInsumos = $pdo->query(
-            'SELECT id, nombre, categoria, cantidad_stock, unidad_medida
-             FROM insumos
-             WHERE activo = 1
-             ORDER BY nombre ASC'
-        );
+        $stmtInsumos = $pdo->query($insumosQuery);
         foreach ($stmtInsumos->fetchAll() as $ins) {
+            $estado = (string) ($ins['estado_operativo'] ?? '');
+            if ($estado === 'danado' || $estado === 'reparacion') {
+                continue;
+            }
             $iid = (int) ($ins['id'] ?? 0);
             if ($iid <= 0) {
                 continue;
             }
             $stock = max(0, (int) round((float) ($ins['cantidad_stock'] ?? 0)));
+            if ($stock <= 0) {
+                continue;
+            }
             $insumosDisponibles[$iid] = [
                 'id' => $iid,
                 'nombre' => (string) ($ins['nombre'] ?? ''),
@@ -55,7 +64,33 @@ if ($canQuickReserve && $rol === 'residente') {
             ];
         }
     } catch (PDOException $e) {
-        $insumosDisponibles = [];
+        try {
+            $stmtInsumos = $pdo->query(
+                'SELECT id, nombre, categoria, cantidad_stock, unidad_medida
+                 FROM insumos
+                 WHERE activo = 1
+                 ORDER BY nombre ASC'
+            );
+            foreach ($stmtInsumos->fetchAll() as $ins) {
+                $iid = (int) ($ins['id'] ?? 0);
+                if ($iid <= 0) {
+                    continue;
+                }
+                $stock = max(0, (int) round((float) ($ins['cantidad_stock'] ?? 0)));
+                if ($stock <= 0) {
+                    continue;
+                }
+                $insumosDisponibles[$iid] = [
+                    'id' => $iid,
+                    'nombre' => (string) ($ins['nombre'] ?? ''),
+                    'categoria' => (string) ($ins['categoria'] ?? ''),
+                    'stock' => $stock,
+                    'unidad' => (string) ($ins['unidad_medida'] ?? 'unidad'),
+                ];
+            }
+        } catch (PDOException $e) {
+            $insumosDisponibles = [];
+        }
     }
 }
 
@@ -94,25 +129,53 @@ if ($canQuickReserve && $_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($ventana !== null) {
                 $error = $ventana;
             } else {
-                $fmtDb = $evento->format('Y-m-d H:i:s');
-                $lineas = [];
-                $lineas[] = 'Asistentes solicitados: ' . $asistentesVal . ' (capacidad máxima: ' . VENUE_MAX_CAPACITY . ').';
-                if (count($insumoCantidades) > 0) {
-                    $lineas[] = 'Insumos solicitados:';
-                    foreach ($insumoCantidades as $iid => $cant) {
-                        $ins = $insumosDisponibles[$iid];
-                        $lineas[] = '- ' . $cant . ' x ' . $ins['nombre'] . ' (stock actual: ' . $ins['stock'] . ')';
-                    }
-                } else {
-                    $lineas[] = 'Insumos solicitados: ninguno.';
+                $errorHorario = reserva_validar_horario($evento);
+                if ($errorHorario !== null) {
+                    $error = $errorHorario;
                 }
-                if ($descVal !== '') {
-                    $lineas[] = '';
-                    $lineas[] = 'Notas del solicitante:';
-                    $lineas[] = $descVal;
+            }
+        }
+
+        if ($error === '') {
+            $error = reserva_validar_no_duplicado($pdo, $evento, null) ?? '';
+        }
+
+        if ($error === '') {
+            $fechaFin = reserva_calcular_fin($evento);
+            $fmtDb = $evento->format('Y-m-d H:i:s');
+            $fmtFin = $fechaFin->format('Y-m-d H:i:s');
+            $lineas = [];
+            $lineas[] = 'Asistentes solicitados: ' . $asistentesVal . ' (capacidad máxima: ' . VENUE_MAX_CAPACITY . ').';
+            if (count($insumoCantidades) > 0) {
+                $lineas[] = 'Insumos solicitados:';
+                foreach ($insumoCantidades as $iid => $cant) {
+                    $ins = $insumosDisponibles[$iid];
+                    $lineas[] = '- ' . $cant . ' x ' . $ins['nombre'] . ' (stock actual: ' . $ins['stock'] . ')';
                 }
-                $descripcionCompleta = implode("\n", $lineas);
+            } else {
+                $lineas[] = 'Insumos solicitados: ninguno.';
+            }
+            if ($descVal !== '') {
+                $lineas[] = '';
+                $lineas[] = 'Notas del solicitante:';
+                $lineas[] = $descVal;
+            }
+            $descripcionCompleta = implode("\n", $lineas);
+
+            try {
+                $pdo->beginTransaction();
+
                 try {
+                    $stmt = $pdo->prepare(
+                        'INSERT INTO reservas (usuario_id, fecha_evento, fecha_fin, descripcion, estado) VALUES (?, ?, ?, ?, \'pendiente\')'
+                    );
+                    $stmt->execute([
+                        (int) current_user()['id'],
+                        $fmtDb,
+                        $fmtFin,
+                        $descripcionCompleta,
+                    ]);
+                } catch (PDOException $e) {
                     $stmt = $pdo->prepare(
                         'INSERT INTO reservas (usuario_id, fecha_evento, descripcion, estado) VALUES (?, ?, ?, \'pendiente\')'
                     );
@@ -121,15 +184,32 @@ if ($canQuickReserve && $_SERVER['REQUEST_METHOD'] === 'POST') {
                         $fmtDb,
                         $descripcionCompleta,
                     ]);
-                    $message = 'Solicitud enviada. Un administrador o supervisor la revisará.';
-                    $fechaVal = '';
-                    $descVal = '';
-                    $asistentesVal = 1;
-                    $insumoCantidades = [];
-                    $eventosCalendario = calendario_obtener_eventos($pdo, $inicioCalendario, $finVentana);
-                } catch (PDOException $e) {
-                    $error = 'No se pudo guardar la reserva. Verifica la tabla reservas en la base de datos.';
                 }
+                $reservaId = (int) $pdo->lastInsertId();
+
+                if (count($insumoCantidades) > 0) {
+                    try {
+                        $stmtIns = $pdo->prepare(
+                            'INSERT INTO reservas_insumos (reserva_id, insumo_id, cantidad_solicitada) VALUES (?, ?, ?)'
+                        );
+                        foreach ($insumoCantidades as $iid => $cant) {
+                            $stmtIns->execute([$reservaId, $iid, $cant]);
+                        }
+                    } catch (PDOException $e) {
+                    }
+                }
+
+                $pdo->commit();
+
+                $message = 'Solicitud enviada. Un administrador o supervisor la revisará.';
+                $fechaVal = '';
+                $descVal = '';
+                $asistentesVal = 1;
+                $insumoCantidades = [];
+                $eventosCalendario = calendario_obtener_eventos($pdo, $inicioCalendario, $finCalendario, current_user());
+            } catch (Throwable $e) {
+                $pdo->rollBack();
+                $error = 'No se pudo guardar la reserva. Verifica la tabla reservas en la base de datos.';
             }
         }
     }
@@ -147,11 +227,8 @@ require __DIR__ . '/includes/header.php';
 <p class="lead">Panel principal del sistema.</p>
 
 <?php if ($canSeeCalendar): ?>
-    <?php if ($message !== ''): ?>
-        <div class="alert alert-success"><?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?></div>
-    <?php endif; ?>
-    <?php if ($error !== ''): ?>
-        <div class="alert alert-error"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div>
+    <?php if ((string) $message !== ''): ?>
+        <div class="alert alert-success"><?= htmlspecialchars((string) $message, ENT_QUOTES, 'UTF-8') ?></div>
     <?php endif; ?>
 
     <?php
@@ -168,9 +245,11 @@ require __DIR__ . '/includes/header.php';
         'max_date' => $maxReserva->format('Y-m-d'),
         'hoy' => $hoy->format('Y-m-d'),
         'reopen_date' => $reopenDate,
+        'user_id' => (int) (current_user()['id'] ?? 0),
+        'error' => $error,
     ]);
     ?>
-    <script src="<?= htmlspecialchars(url('assets/js/calendario-gcal.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
+    <script src="<?= htmlspecialchars(url('assets/js/calendario-gcal.js') . '?v=' . filemtime(__DIR__ . '/assets/js/calendario-gcal.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <?php endif; ?>
 
 <?php require __DIR__ . '/includes/footer.php'; ?>

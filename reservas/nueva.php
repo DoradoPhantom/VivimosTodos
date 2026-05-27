@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+// Las reservas nuevas se hacen en inicio esta pagina solo redirige al calendario
 require_once dirname(__DIR__) . '/includes/auth.php';
 require_login();
 

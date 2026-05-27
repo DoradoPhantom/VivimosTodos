@@ -1,12 +1,15 @@
 <?php
 declare(strict_types=1);
 
+// Sesion rutas roles y CSRF
+// administrador todo supervisor reservas e inventario residente sus reservas
 require_once __DIR__ . '/db.php';
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
+// Enlaces internos con la carpeta del proyecto en htdocs
 function url(string $path = ''): string
 {
     $path = ltrim($path, '/');
@@ -50,7 +53,7 @@ function can_manage_inventory(): bool
     return in_array($u['rol'], ['administrador', 'supervisor'], true);
 }
 
-/** Administrador y supervisor: ver todas las reservas y autorizar o rechazar. */
+// Admin y supervisor ven todas las reservas y pueden aprobar o rechazar
 function can_manage_reservations(): bool
 {
     $u = current_user();

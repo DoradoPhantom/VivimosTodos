@@ -1,22 +1,29 @@
 <?php
 declare(strict_types=1);
 
-/**
- * Datos y vista del calendario de ocupación (estilo Google Calendar).
- */
+const MESES_CALENDARIO_ATRAS = 3;
+const MESES_CALENDARIO_ADELANTE = 6;
 
-/** @return list<array{id:int,fecha:string,titulo:string,estado:string,descripcion:string}> */
-function calendario_obtener_eventos(PDO $pdo, DateTimeImmutable $desde, DateTimeImmutable $hasta): array
+function calendario_obtener_eventos(PDO $pdo, DateTimeImmutable $desde, DateTimeImmutable $hasta, ?array $currentUser = null): array
 {
     $lista = [];
+    $fechaFinCol = false;
+    try {
+        $pdo->query('SELECT fecha_fin FROM reservas LIMIT 1');
+        $fechaFinCol = true;
+    } catch (PDOException $e) {
+    }
+    $cols = $fechaFinCol
+        ? 'id, usuario_id, fecha_evento, fecha_fin, descripcion, estado'
+        : 'id, usuario_id, fecha_evento, descripcion, estado';
     try {
         $stmt = $pdo->prepare(
-            'SELECT id, fecha_evento, descripcion, estado
+            "SELECT $cols
              FROM reservas
-             WHERE estado IN (\'pendiente\', \'aprobada\')
+             WHERE estado IN ('pendiente', 'aprobada')
                AND fecha_evento >= ?
                AND fecha_evento <= ?
-             ORDER BY fecha_evento ASC'
+             ORDER BY fecha_evento ASC"
         );
         $stmt->execute([
             $desde->format('Y-m-d H:i:s'),
@@ -29,18 +36,26 @@ function calendario_obtener_eventos(PDO $pdo, DateTimeImmutable $desde, DateTime
                 continue;
             }
             $desc = (string) ($row['descripcion'] ?? '');
+            $ownerId = (int) ($row['usuario_id'] ?? 0);
+            $puedeVerDetalle = false;
+            if ($currentUser !== null) {
+                $userId = (int) ($currentUser['id'] ?? 0);
+                $rol = (string) ($currentUser['rol'] ?? '');
+                $puedeVerDetalle = ($userId === $ownerId) || in_array($rol, ['administrador', 'supervisor'], true);
+            }
             $lista[] = [
                 'id' => $id,
+                'usuario_id' => $ownerId,
                 'fecha' => $fechaRaw,
+                'fecha_fin' => $fechaFinCol ? ($row['fecha_fin'] ?? null) : null,
                 'titulo' => calendario_evento_titulo($desc),
                 'estado' => (string) ($row['estado'] ?? ''),
-                'descripcion' => $desc,
+                'descripcion' => $puedeVerDetalle ? $desc : '',
             ];
         }
     } catch (PDOException $e) {
         return [];
     }
-
     return $lista;
 }
 
@@ -61,26 +76,9 @@ function calendario_evento_titulo(string $descripcion): string
     if (strlen($linea) > 48) {
         return substr($linea, 0, 45) . '…';
     }
-
     return $linea;
 }
 
-/**
- * @param array{
- *   eventos: list<array>,
- *   puede_reservar: bool,
- *   csrf: string,
- *   insumos?: array<int, array>,
- *   asistentes_val?: int,
- *   desc_val?: string,
- *   insumo_cantidades?: array<int, int>,
- *   fecha_val?: string,
- *   min_date: string,
- *   max_date: string,
- *   hoy: string,
- *   reopen_date?: string,
- * } $opts
- */
 function calendario_render(array $opts): void
 {
     $eventos = $opts['eventos'] ?? [];
@@ -95,6 +93,8 @@ function calendario_render(array $opts): void
     $maxDate = (string) ($opts['max_date'] ?? '');
     $hoy = (string) ($opts['hoy'] ?? '');
     $reopenDate = (string) ($opts['reopen_date'] ?? '');
+    $userId = (int) ($opts['user_id'] ?? 0);
+    $errorMsg = (string) ($opts['error'] ?? '');
 
     $eventosJson = json_encode(
         $eventos,
@@ -105,6 +105,9 @@ function calendario_render(array $opts): void
     }
     ?>
     <section class="gcal-wrap" id="calendario-reservas">
+        <?php if ($errorMsg !== ''): ?>
+            <div class="alert alert-error gcal-error"><?= htmlspecialchars($errorMsg, ENT_QUOTES, 'UTF-8') ?></div>
+        <?php endif; ?>
         <div
             class="gcal"
             data-events="<?= htmlspecialchars($eventosJson, ENT_QUOTES, 'UTF-8') ?>"
@@ -112,7 +115,9 @@ function calendario_render(array $opts): void
             data-min="<?= htmlspecialchars($minDate, ENT_QUOTES, 'UTF-8') ?>"
             data-max="<?= htmlspecialchars($maxDate, ENT_QUOTES, 'UTF-8') ?>"
             data-can-reserve="<?= $puedeReservar ? '1' : '0' ?>"
+            data-current-user="<?= $userId ?>"
             <?php if ($reopenDate !== ''): ?>data-reopen-date="<?= htmlspecialchars($reopenDate, ENT_QUOTES, 'UTF-8') ?>"<?php endif; ?>
+            <?php if ($errorMsg !== ''): ?>data-error="<?= htmlspecialchars($errorMsg, ENT_QUOTES, 'UTF-8') ?>"<?php endif; ?>
         >
             <header class="gcal-toolbar">
                 <div class="gcal-toolbar-start">
@@ -129,6 +134,7 @@ function calendario_render(array $opts): void
                 <div class="gcal-legend" aria-label="Leyenda">
                     <span class="gcal-legend-item"><i class="gcal-dot gcal-dot-aprobada"></i> Aprobada</span>
                     <span class="gcal-legend-item"><i class="gcal-dot gcal-dot-pendiente"></i> Pendiente</span>
+                    <span class="gcal-legend-item"><i class="gcal-dot gcal-dot-ocupado"></i> Ocupado</span>
                 </div>
             </header>
             <div class="gcal-weekdays" aria-hidden="true">
@@ -168,6 +174,7 @@ function calendario_render(array $opts): void
                 <h3 id="gcal-reserva-title" class="gcal-popover-form-title">Nueva reserva</h3>
                 <button type="button" class="gcal-popover-close" data-gcal-close aria-label="Cerrar">×</button>
             </header>
+            <div class="gcal-form-error" data-gcal-form-error hidden></div>
             <form method="post" class="gcal-form" id="gcal-reserva-form">
                 <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
                 <input type="hidden" name="fecha_evento" id="gcal-fecha-hidden" value="<?= htmlspecialchars($fechaVal, ENT_QUOTES, 'UTF-8') ?>">
@@ -184,14 +191,16 @@ function calendario_render(array $opts): void
                     <span class="gcal-form-icon" aria-hidden="true">🕐</span>
                     <div class="gcal-time-pickers">
                         <label class="gcal-time-field">
-                            <span class="sr-only">Hora</span>
+                            <span class="gcal-form-label">Hora</span>
                             <select id="gcal-hour" data-gcal-hour></select>
+                            <span class="gcal-pm-label">pm</span>
                         </label>
                         <span class="gcal-time-sep">:</span>
                         <label class="gcal-time-field">
                             <span class="sr-only">Minutos</span>
                             <select id="gcal-minute" data-gcal-minute></select>
                         </label>
+                        <small class="muted gcal-form-rules">Horario: 12:00 p. m. a 11:59 p. m.</small>
                     </div>
                 </div>
 

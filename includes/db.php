@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';
 
+// Una sola conexion PDO por peticion
 function db(): PDO
 {
     static $pdo = null;

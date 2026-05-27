@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+// Exportar reservas a CSV sin pagina HTML
 require_once dirname(__DIR__) . '/includes/auth.php';
 require_login();
 
@@ -23,6 +24,7 @@ if ($out === false) {
 fputcsv($out, [
     'id',
     'fecha_evento',
+    'fecha_fin',
     'estado',
     'solicitante',
     'usuario',
@@ -36,7 +38,7 @@ fputcsv($out, [
 $rows = [];
 try {
     $rows = $pdo->query(
-        "SELECT r.id, r.fecha_evento, r.estado, r.descripcion, r.comentario_revision, r.revisado_en, r.creado_en,
+        "SELECT r.id, r.fecha_evento, r.fecha_fin, r.estado, r.descripcion, r.comentario_revision, r.revisado_en, r.creado_en,
                 u.nombre_completo AS solicitante_nombre, u.usuario AS solicitante_usuario,
                 rv.nombre_completo AS revisor_nombre
          FROM reservas r
@@ -45,13 +47,26 @@ try {
          ORDER BY r.id DESC"
     )->fetchAll();
 } catch (Throwable $e) {
-    $rows = [];
+    try {
+        $rows = $pdo->query(
+            "SELECT r.id, r.fecha_evento, r.estado, r.descripcion, r.comentario_revision, r.revisado_en, r.creado_en,
+                    u.nombre_completo AS solicitante_nombre, u.usuario AS solicitante_usuario,
+                    rv.nombre_completo AS revisor_nombre
+             FROM reservas r
+             INNER JOIN usuarios u ON u.id = r.usuario_id
+             LEFT JOIN usuarios rv ON rv.id = r.revisado_por_id
+             ORDER BY r.id DESC"
+        )->fetchAll();
+    } catch (Throwable $e2) {
+        $rows = [];
+    }
 }
 
 foreach ($rows as $r) {
     fputcsv($out, [
         (int) ($r['id'] ?? 0),
         (string) ($r['fecha_evento'] ?? ''),
+        (string) ($r['fecha_fin'] ?? ''),
         (string) ($r['estado'] ?? ''),
         (string) ($r['solicitante_nombre'] ?? ''),
         (string) ($r['solicitante_usuario'] ?? ''),

@@ -17,6 +17,7 @@ if ($canEdit && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'delete') {
             $id = (int) ($_POST['id'] ?? 0);
             if ($id > 0) {
+                // Baja logica no borra la fila para conservar historial
                 $stmt = $pdo->prepare('UPDATE insumos SET activo = 0 WHERE id = ?');
                 $stmt->execute([$id]);
                 $message = 'Ítem dado de baja.';
@@ -86,11 +87,8 @@ require dirname(__DIR__) . '/includes/header.php';
                     'reparacion' => 'En reparación',
                     default => 'Disponible',
                 };
-                $estadoChip = $estadoOp === 'danado'
-                    ? 'chip chip-aprobada'
-                    : ($estadoOp === 'reparacion' ? 'chip chip-pendiente' : 'chip');
                 ?>
-                <td><span class="<?= htmlspecialchars($estadoChip, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($estadoTxt, ENT_QUOTES, 'UTF-8') ?></span></td>
+                <td><span class="chip"><?= htmlspecialchars($estadoTxt, ENT_QUOTES, 'UTF-8') ?></span></td>
                 <td><?= $precioCell ?></td>
                 <?php if ($canEdit): ?>
                     <td class="actions">

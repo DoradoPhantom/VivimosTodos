@@ -1,0 +1,9 @@
+# Proteger archivos sensibles
+<FilesMatch "\.(txt|sql|md|log)$">
+  Require all denied
+</FilesMatch>
+
+# Proteger directorios sensibles
+<IfModule mod_autoindex.c>
+  Options -Indexes
+</IfModule>

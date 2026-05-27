@@ -65,10 +65,35 @@ function openReservaReviewFromNotif(btn) {
     var rid = btn.getAttribute('data-reserva-id') || '';
     var nombre = btn.getAttribute('data-reserva-nombre') || '';
     var fecha = btn.getAttribute('data-reserva-fecha') || '';
+    var desc = btn.getAttribute('data-reserva-desc') || '';
 
     var sub = document.getElementById('reserva-review-sub');
     if (sub) {
         sub.textContent = nombre + (fecha ? (' · ' + fecha.replace('T',' ').slice(0,16)) : '');
+    }
+
+    var descEl = document.getElementById('reserva-review-desc');
+    if (descEl) {
+        if (desc) {
+            var html = '<table class="review-desc-table">';
+            var lines = desc.split('\n');
+            lines.forEach(function (line) {
+                line = line.trim();
+                if (!line) return;
+                if (line.indexOf(':') > -1 && line.indexOf('-') !== 0) {
+                    var parts = line.split(':');
+                    var label = parts.shift().trim();
+                    var value = parts.join(':').trim();
+                    html += '<tr><td class="rd-label">' + label.replace(/</g, '&lt;') + '</td><td class="rd-value">' + value.replace(/</g, '&lt;') + '</td></tr>';
+                } else {
+                    html += '<tr><td colspan="2" class="rd-line">' + line.replace(/</g, '&lt;') + '</td></tr>';
+                }
+            });
+            html += '</table>';
+            descEl.innerHTML = html;
+        } else {
+            descEl.innerHTML = '<p class="muted" style="margin:0;">Sin descripción adicional.</p>';
+        }
     }
 
     var a = document.getElementById('review-id-approve');

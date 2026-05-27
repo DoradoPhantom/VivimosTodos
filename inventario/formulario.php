@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+// Crear o editar items del catalogo admin o supervisor
 require_once dirname(__DIR__) . '/includes/auth.php';
 require_login();
 
@@ -60,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $codigo, $nombre, $descripcion, $categoria, $cantidad, $precioVal, $estadoOperativo, $postId,
                         ]);
                     } catch (PDOException $e) {
-                        // si la columna aún no existe, actualiza sin estado
+                        // Si falta la columna estado se guarda sin ese campo
                         $stmt = $pdo->prepare(
                             'UPDATE insumos SET codigo=?, nombre=?, descripcion=?, categoria=?, cantidad_stock=?, precio_unitario=? WHERE id=? AND activo=1'
                         );
